@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.MessageDigest
@@ -53,12 +55,27 @@ object FileUtil {
 
     fun extractToCache(context: Context, uri: Uri, targetName: String): File {
         val target = File(context.cacheDir, targetName)
-        openStream(context, uri)?.use { input ->
-            target.outputStream().buffered(BUFFER_SIZE).use { output ->
-                input.copyTo(output, BUFFER_SIZE)
+        val partial = File(context.cacheDir, ".$targetName.${System.nanoTime()}.part")
+        if (target.exists() && !target.delete()) throw IOException("Cannot clear stale cache file: $targetName")
+        try {
+            val input = openStream(context, uri) ?: throw IOException("Cannot open the selected file")
+            input.use {
+                FileOutputStream(partial).use { output ->
+                    val buffer = ByteArray(BUFFER_SIZE)
+                    while (true) {
+                        val read = it.read(buffer)
+                        if (read < 0) break
+                        StorageBudget.requireSpace(context.cacheDir, read.toLong())
+                        output.write(buffer, 0, read)
+                    }
+                    output.fd.sync()
+                }
             }
+            if (!partial.renameTo(target)) throw IOException("Cannot finalize cached file: $targetName")
+            return target
+        } finally {
+            partial.delete()
         }
-        return target
     }
 
     fun copyWithProgress(

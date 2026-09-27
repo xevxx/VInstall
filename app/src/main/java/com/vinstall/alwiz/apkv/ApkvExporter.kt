@@ -11,11 +11,13 @@ import com.vinstall.alwiz.apkv.ApkvHeader
 import com.vinstall.alwiz.apkv.ApkvManifest
 import com.vinstall.alwiz.model.AppInfo
 import com.vinstall.alwiz.util.DebugLog
+import com.vinstall.alwiz.util.StorageBudget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.OutputStream
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -191,22 +193,27 @@ object ApkvExporter {
         iconBytes: ByteArray?,
         onStep: (String) -> Unit
     ) {
-        ZipOutputStream(outFile.outputStream().buffered()).use { zos ->
-            zos.putNextEntry(ZipEntry(ENTRY_MANIFEST_PLAIN))
-            zos.write(manifest.toJson().toByteArray(Charsets.UTF_8))
-            zos.closeEntry()
-
-            if (iconBytes != null) {
-                zos.putNextEntry(ZipEntry(ENTRY_ICON_PLAIN))
-                zos.write(iconBytes)
+        FileOutputStream(outFile).use { rawOutput ->
+            ZipOutputStream(StorageBudget.guarding(outFile.parentFile!!, rawOutput).buffered()).use { zos ->
+                zos.putNextEntry(ZipEntry(ENTRY_MANIFEST_PLAIN))
+                zos.write(manifest.toJson().toByteArray(Charsets.UTF_8))
                 zos.closeEntry()
-            }
 
-            for (apk in apkFiles) {
-                onStep("Archiving ${apk.name}...")
-                zos.putNextEntry(ZipEntry(apk.name))
-                FileInputStream(apk).use { it.copyTo(zos) }
-                zos.closeEntry()
+                if (iconBytes != null) {
+                    zos.putNextEntry(ZipEntry(ENTRY_ICON_PLAIN))
+                    zos.write(iconBytes)
+                    zos.closeEntry()
+                }
+
+                for (apk in apkFiles) {
+                    onStep("Archiving ${apk.name}...")
+                    zos.putNextEntry(ZipEntry(apk.name))
+                    FileInputStream(apk).use { it.copyTo(zos) }
+                    zos.closeEntry()
+                }
+                zos.finish()
+                zos.flush()
+                rawOutput.fd.sync()
             }
         }
     }
@@ -242,34 +249,39 @@ object ApkvExporter {
             ApkvCrypto.encrypt(it, password)
         }
 
-        val tempPayload = File(outFile.parent, "${outFile.name}.tmp")
+        val tempPayload = File(outFile.parent, ".payload.${System.nanoTime()}.partial")
         try {
             onStep("Building payload archive...")
             buildPayloadZipToFile(apkFiles, tempPayload, onStep)
 
-            ZipOutputStream(outFile.outputStream().buffered()).use { zos ->
-                zos.putNextEntry(ZipEntry(ENTRY_ENCRYPTED_MARKER))
-                zos.write(ByteArray(0))
-                zos.closeEntry()
-
-                zos.putNextEntry(ZipEntry(ENTRY_HEADER))
-                zos.write(header.toJson().toByteArray(Charsets.UTF_8))
-                zos.closeEntry()
-
-                zos.putNextEntry(ZipEntry(ENTRY_MANIFEST_ENC))
-                zos.write(encryptedManifest)
-                zos.closeEntry()
-
-                if (encryptedIcon != null) {
-                    zos.putNextEntry(ZipEntry(ENTRY_ICON_ENC))
-                    zos.write(encryptedIcon)
+            FileOutputStream(outFile).use { rawOutput ->
+                ZipOutputStream(StorageBudget.guarding(outFile.parentFile!!, rawOutput).buffered()).use { zos ->
+                    zos.putNextEntry(ZipEntry(ENTRY_ENCRYPTED_MARKER))
+                    zos.write(ByteArray(0))
                     zos.closeEntry()
-                }
 
-                onStep("Encrypting payload...")
-                zos.putNextEntry(ZipEntry(ENTRY_PAYLOAD_ENC))
-                streamEncryptFileTo(tempPayload, zos, password)
-                zos.closeEntry()
+                    zos.putNextEntry(ZipEntry(ENTRY_HEADER))
+                    zos.write(header.toJson().toByteArray(Charsets.UTF_8))
+                    zos.closeEntry()
+
+                    zos.putNextEntry(ZipEntry(ENTRY_MANIFEST_ENC))
+                    zos.write(encryptedManifest)
+                    zos.closeEntry()
+
+                    if (encryptedIcon != null) {
+                        zos.putNextEntry(ZipEntry(ENTRY_ICON_ENC))
+                        zos.write(encryptedIcon)
+                        zos.closeEntry()
+                    }
+
+                    onStep("Encrypting payload...")
+                    zos.putNextEntry(ZipEntry(ENTRY_PAYLOAD_ENC))
+                    streamEncryptFileTo(tempPayload, zos, password)
+                    zos.closeEntry()
+                    zos.finish()
+                    zos.flush()
+                    rawOutput.fd.sync()
+                }
             }
         } finally {
             tempPayload.delete()
@@ -281,12 +293,19 @@ object ApkvExporter {
         destFile: File,
         onStep: (String) -> Unit
     ) {
-        ZipOutputStream(destFile.outputStream().buffered(STREAM_BUFFER_SIZE)).use { zos ->
-            for (apk in apkFiles) {
-                onStep("Packing ${apk.name}...")
-                zos.putNextEntry(ZipEntry(apk.name))
-                FileInputStream(apk).use { it.copyTo(zos, STREAM_BUFFER_SIZE) }
-                zos.closeEntry()
+        FileOutputStream(destFile).use { rawOutput ->
+            ZipOutputStream(
+                StorageBudget.guarding(destFile.parentFile!!, rawOutput).buffered(STREAM_BUFFER_SIZE)
+            ).use { zos ->
+                for (apk in apkFiles) {
+                    onStep("Packing ${apk.name}...")
+                    zos.putNextEntry(ZipEntry(apk.name))
+                    FileInputStream(apk).use { it.copyTo(zos, STREAM_BUFFER_SIZE) }
+                    zos.closeEntry()
+                }
+                zos.finish()
+                zos.flush()
+                rawOutput.fd.sync()
             }
         }
     }

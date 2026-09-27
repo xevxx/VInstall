@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
 import com.google.gson.Gson
+import com.vinstall.alwiz.util.StorageBudget
 import java.io.Closeable
 import java.io.File
 import java.io.FileOutputStream
@@ -150,19 +151,24 @@ class IncomingPackageRepository(private val context: Context) {
     }
 
     private fun ensureSpace(bytes: Long) {
-        if (bytes > directory.usableSpace - RESERVED_BYTES) {
-            throw IOException("Not enough storage space")
-        }
+        StorageBudget.requireSpace(directory, bytes)
     }
 
     private fun writeMetadata(entry: IncomingPackageEntry) {
         val metadata = Metadata(entry.id, entry.displayName, entry.createdAt)
         val target = File(directory, "${entry.id}.$METADATA_EXTENSION")
         val temporary = File(directory, "${entry.id}.$METADATA_EXTENSION.part")
-        temporary.writeText(gson.toJson(metadata))
-        if (!temporary.renameTo(target)) {
+        val bytes = gson.toJson(metadata).toByteArray(Charsets.UTF_8)
+        try {
+            StorageBudget.requireSpace(directory, bytes.size.toLong())
+            FileOutputStream(temporary).use { output ->
+                output.write(bytes)
+                output.fd.sync()
+            }
+            if (!temporary.renameTo(target)) throw IOException("Unable to persist package metadata")
+        } catch (error: Exception) {
             temporary.delete()
-            throw IOException("Unable to persist package metadata")
+            throw error
         }
     }
 
@@ -183,7 +189,8 @@ class IncomingPackageRepository(private val context: Context) {
             when {
                 file.name.endsWith(".part") && System.currentTimeMillis() - file.lastModified() >= PART_MAX_AGE_MS -> file.delete()
                 file.extension.lowercase(Locale.ROOT) in ALLOWED_EXTENSIONS &&
-                    !File(directory, "${file.name.substringBeforeLast('.')}.$METADATA_EXTENSION").isFile -> file.delete()
+                    !File(directory, "${file.name.substringBeforeLast('.')}.$METADATA_EXTENSION").isFile &&
+                    System.currentTimeMillis() - file.lastModified() >= ORPHAN_GRACE_MS -> file.delete()
             }
         }
     }
@@ -191,9 +198,9 @@ class IncomingPackageRepository(private val context: Context) {
     companion object {
         private const val DIRECTORY_NAME = "incoming"
         private const val METADATA_EXTENSION = "json"
-        private const val RESERVED_BYTES = 16L * 1024L * 1024L
         private val MAX_AGE_MS = TimeUnit.HOURS.toMillis(24)
         private val PART_MAX_AGE_MS = TimeUnit.HOURS.toMillis(1)
+        private val ORPHAN_GRACE_MS = TimeUnit.HOURS.toMillis(1)
         private val SAFE_ID = Regex("[a-fA-F0-9-]{36}")
         val ALLOWED_EXTENSIONS = setOf("apk", "apkm", "apks", "apkv", "xapk", "zip")
 

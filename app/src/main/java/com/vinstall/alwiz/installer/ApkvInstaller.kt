@@ -9,7 +9,7 @@ import com.vinstall.alwiz.util.FileUtil
 import java.io.DataInputStream
 import java.io.File
 import java.io.FileInputStream
-import java.io.FileOutputStream
+import java.io.IOException
 import javax.crypto.Cipher
 import javax.crypto.CipherInputStream
 import javax.crypto.SecretKeyFactory
@@ -34,9 +34,11 @@ object ApkvInstaller {
 
     fun isEncrypted(context: Context, uri: Uri): Boolean {
         val stream = FileUtil.openStream(context, uri) ?: return false
+        val guard = ArchiveExtractionGuard(context.cacheDir)
         return ZipInputStream(stream.buffered()).use { zip ->
             var entry = zip.nextEntry
             while (entry != null) {
+                guard.recordEntry(entry.name, entry.isDirectory)
                 if (entry.name == ENTRY_ENCRYPTED_MARKER) return@use true
                 zip.closeEntry()
                 entry = zip.nextEntry
@@ -47,11 +49,13 @@ object ApkvInstaller {
 
     fun readHeader(context: Context, uri: Uri): ApkvHeader? {
         val stream = FileUtil.openStream(context, uri) ?: return null
+        val guard = ArchiveExtractionGuard(context.cacheDir)
         return ZipInputStream(stream.buffered()).use { zip ->
             var entry = zip.nextEntry
             while (entry != null) {
+                guard.recordEntry(entry.name, entry.isDirectory)
                 if (entry.name == ENTRY_HEADER) {
-                    val json = zip.readBytes().toString(Charsets.UTF_8)
+                    val json = ArchiveExtractionGuard.readMetadata(zip).toString(Charsets.UTF_8)
                     return@use ApkvHeader.fromJson(json)
                 }
                 zip.closeEntry()
@@ -63,17 +67,19 @@ object ApkvInstaller {
 
     fun readManifest(context: Context, uri: Uri, password: String? = null): ApkvManifest? {
         val stream = FileUtil.openStream(context, uri) ?: return null
+        val guard = ArchiveExtractionGuard(context.cacheDir)
         return ZipInputStream(stream.buffered()).use { zip ->
             var entry = zip.nextEntry
             while (entry != null) {
+                guard.recordEntry(entry.name, entry.isDirectory)
                 when (entry.name) {
                     ENTRY_MANIFEST_PLAIN -> {
-                        val json = zip.readBytes().toString(Charsets.UTF_8)
+                        val json = ArchiveExtractionGuard.readMetadata(zip).toString(Charsets.UTF_8)
                         return@use ApkvManifest.fromJson(json)
                     }
                     ENTRY_MANIFEST_ENC -> {
                         if (password == null) return@use null
-                        val blob = zip.readBytes()
+                        val blob = ArchiveExtractionGuard.readMetadata(zip)
                         val decrypted = ApkvCrypto.tryDecrypt(blob, password) ?: return@use null
                         return try {
                             ApkvManifest.fromJson(decrypted.toString(Charsets.UTF_8))
@@ -91,16 +97,18 @@ object ApkvInstaller {
 
     fun readIcon(context: Context, uri: Uri, password: String? = null): ByteArray? {
         val stream = FileUtil.openStream(context, uri) ?: return null
+        val guard = ArchiveExtractionGuard(context.cacheDir)
         return ZipInputStream(stream.buffered()).use { zip ->
             var entry = zip.nextEntry
             while (entry != null) {
+                guard.recordEntry(entry.name, entry.isDirectory)
                 when (entry.name) {
                     ENTRY_ICON_PLAIN -> {
-                        return@use zip.readBytes()
+                        return@use ArchiveExtractionGuard.readMetadata(zip)
                     }
                     ENTRY_ICON_ENC -> {
                         if (password == null) return@use null
-                        val blob = zip.readBytes()
+                        val blob = ArchiveExtractionGuard.readMetadata(zip)
                         return@use ApkvCrypto.tryDecrypt(blob, password)
                     }
                 }
@@ -196,14 +204,17 @@ object ApkvInstaller {
     }
 
     private fun extractPlain(context: Context, uri: Uri, outDir: File, onStep: (String) -> Unit) {
-        val stream = FileUtil.openStream(context, uri) ?: return
+        val stream = FileUtil.openStream(context, uri) ?: throw IOException("Cannot open the selected APKV")
+        val guard = ArchiveExtractionGuard(outDir)
         ZipInputStream(stream.buffered(FileUtil.BUFFER_SIZE)).use { zip ->
             var entry = zip.nextEntry
             while (entry != null) {
-                if (!entry.isDirectory && entry.name.endsWith(".apk")) {
-                    val name = File(entry.name).name
+                guard.recordEntry(entry.name, entry.isDirectory)
+                if (!entry.isDirectory && entry.name.endsWith(".apk", ignoreCase = true)) {
+                    val output = guard.destination(entry.name, ArchiveExtractionGuard.APK_EXTENSIONS)
+                    val name = output.name
                     onStep("Extracting $name...")
-                    File(outDir, name).outputStream().buffered().use { zip.copyTo(it) }
+                    guard.extract(zip, output)
                 }
                 zip.closeEntry()
                 entry = zip.nextEntry
@@ -221,17 +232,16 @@ object ApkvInstaller {
         val tempEncrypted = File(outDir, "payload_enc.tmp")
         val tempDecrypted = File(outDir, "payload_dec.tmp")
         try {
+            val outerGuard = ArchiveExtractionGuard(outDir)
             val written = FileUtil.openStream(context, uri)?.use { raw ->
                 ZipInputStream(raw.buffered(FileUtil.BUFFER_SIZE)).use { zip ->
                     var entry = zip.nextEntry
                     var found = false
                     while (entry != null) {
+                        outerGuard.recordEntry(entry.name, entry.isDirectory)
                         if (entry.name == ENTRY_PAYLOAD_ENC) {
-                            FileOutputStream(tempEncrypted).buffered(FileUtil.BUFFER_SIZE).use { out ->
-                                zip.copyTo(out, FileUtil.BUFFER_SIZE)
-                            }
+                            outerGuard.extract(zip, tempEncrypted)
                             found = true
-                            break
                         }
                         zip.closeEntry()
                         entry = zip.nextEntry
@@ -246,14 +256,15 @@ object ApkvInstaller {
             if (!streamDecryptFile(tempEncrypted, tempDecrypted, password)) return false
 
             ZipInputStream(FileInputStream(tempDecrypted).buffered(FileUtil.BUFFER_SIZE)).use { zip ->
+                val payloadGuard = ArchiveExtractionGuard(outDir)
                 var entry = zip.nextEntry
                 while (entry != null) {
+                    payloadGuard.recordEntry(entry.name, entry.isDirectory)
                     if (!entry.isDirectory && entry.name.lowercase().endsWith(".apk")) {
-                        val name = File(entry.name).name
+                        val output = payloadGuard.destination(entry.name, ArchiveExtractionGuard.APK_EXTENSIONS)
+                        val name = output.name
                         onStep("Extracting $name...")
-                        File(outDir, name).outputStream().buffered(FileUtil.BUFFER_SIZE).use { out ->
-                            zip.copyTo(out, FileUtil.BUFFER_SIZE)
-                        }
+                        payloadGuard.extract(zip, output)
                     }
                     zip.closeEntry()
                     entry = zip.nextEntry
@@ -280,9 +291,7 @@ object ApkvInstaller {
                 cipher.init(Cipher.DECRYPT_MODE, key, IvParameterSpec(iv))
 
                 CipherInputStream(fis, cipher).use { cis ->
-                    FileOutputStream(output).buffered(FileUtil.BUFFER_SIZE).use { out ->
-                        cis.copyTo(out, FileUtil.BUFFER_SIZE)
-                    }
+                    ArchiveExtractionGuard(output.parentFile!!).extract(cis, output)
                 }
             }
 

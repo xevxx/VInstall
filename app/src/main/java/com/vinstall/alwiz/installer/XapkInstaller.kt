@@ -12,8 +12,11 @@ import com.vinstall.alwiz.settings.InstallMode
 import com.vinstall.alwiz.shizuku.ShizukuHelper
 import com.vinstall.alwiz.util.DebugLog
 import com.vinstall.alwiz.util.FileUtil
+import com.vinstall.alwiz.util.StorageBudget
 import java.io.File
-import java.util.zip.ZipFile
+import java.io.IOException
+import java.util.Locale
+import java.util.zip.ZipInputStream
 
 object XapkInstaller {
 
@@ -29,6 +32,10 @@ object XapkInstaller {
         onProgress: ((Float) -> Unit)? = null
     ): Result<Unit> {
         return try {
+            val packagePreflight = preflight(context, uri)
+            if (!packagePreflight.accepted) {
+                return Result.failure(Exception(packagePreflight.validationFailure ?: "XAPK preflight failed"))
+            }
             onStep("Extracting package...")
             val cacheDir = File(context.cacheDir, "xapk_extract").also {
                 it.deleteRecursively()
@@ -103,24 +110,92 @@ object XapkInstaller {
 
     fun listSplits(context: Context, uri: Uri): List<String> {
         val splits = mutableListOf<String>()
-        val tempFile = File(context.cacheDir, "xapk_list_${System.nanoTime()}.xapk")
         try {
-            copyUriToFile(context, uri, tempFile)
-            ZipFile(tempFile).use { zip ->
-                val entries = zip.entries()
-                while (entries.hasMoreElements()) {
-                    val entry = entries.nextElement()
-                    if (!entry.isDirectory && entry.name.endsWith(".apk")) {
-                        splits.add(File(entry.name).name)
+            val stream = FileUtil.openStream(context, uri) ?: return emptyList()
+            val guard = ArchiveExtractionGuard(context.cacheDir)
+            ZipInputStream(stream.buffered(FileUtil.BUFFER_SIZE)).use { zip ->
+                var entry = zip.nextEntry
+                while (entry != null) {
+                    guard.recordEntry(entry.name, entry.isDirectory)
+                    if (!entry.isDirectory && entry.name.endsWith(".apk", ignoreCase = true)) {
+                        splits.add(guard.destination(entry.name, ArchiveExtractionGuard.APK_EXTENSIONS).name)
                     }
+                    zip.closeEntry()
+                    entry = zip.nextEntry
                 }
             }
         } catch (e: Exception) {
             DebugLog.e("XapkInstaller", "listSplits error: ${e.message}")
-        } finally {
-            tempFile.delete()
         }
         return splits
+    }
+
+    internal fun preflight(context: Context, uri: Uri): PackagePreflight {
+        return try {
+            val stream = FileUtil.openStream(context, uri)
+                ?: throw IOException("Cannot open the selected XAPK")
+            val guard = ArchiveExtractionGuard(context.cacheDir)
+            var manifest: XapkManifest? = null
+            var declaredSize = 0L
+            var sizeKnown = true
+            var apkCount = 0
+            val archivedObbNames = linkedSetOf<String>()
+            ZipInputStream(stream.buffered(FileUtil.BUFFER_SIZE)).use { zip ->
+                var entry = zip.nextEntry
+                while (entry != null) {
+                    guard.recordEntry(entry.name, entry.isDirectory)
+                    if (!entry.isDirectory && isManifestEntry(entry.name)) {
+                        val text = ArchiveExtractionGuard.readMetadata(zip)
+                            .toString(Charsets.UTF_8).trimStart('\uFEFF').trim()
+                        manifest = gson.fromJson(text, XapkManifest::class.java)
+                    } else if (!entry.isDirectory && (
+                            entry.name.endsWith(".apk", ignoreCase = true) ||
+                                entry.name.endsWith(".obb", ignoreCase = true)
+                        )
+                    ) {
+                        val payload = guard.destination(entry.name, ArchiveExtractionGuard.XAPK_PAYLOAD_EXTENSIONS)
+                        if (payload.name.endsWith(".apk", ignoreCase = true)) apkCount++
+                        if (payload.name.endsWith(".obb", ignoreCase = true)) {
+                            archivedObbNames += payload.name.lowercase(Locale.ROOT)
+                        }
+                        if (entry.size < 0) sizeKnown = false else declaredSize = Math.addExact(declaredSize, entry.size)
+                    }
+                    zip.closeEntry()
+                    entry = zip.nextEntry
+                }
+            }
+            val parsed = manifest ?: throw IOException("Invalid XAPK: manifest.json not found in archive")
+            if (apkCount == 0) throw IOException("Invalid XAPK: no APK payload found")
+            val declaredObbNames = parsed.expansions.orEmpty().map { expansion ->
+                val name = File(expansion.file.replace('\\', '/')).name
+                if (name.isBlank() || !name.endsWith(".obb", ignoreCase = true) || name.any(Char::isISOControl)) {
+                    throw IOException("Invalid XAPK expansion filename")
+                }
+                name.lowercase(Locale.ROOT)
+            }
+            if (declaredObbNames.toSet().size != declaredObbNames.size) {
+                throw IOException("Invalid XAPK: duplicate expansion declaration")
+            }
+            if (declaredObbNames.toSet() != archivedObbNames) {
+                throw IOException("Invalid XAPK: OBB payload does not match its manifest")
+            }
+            val requiresElevated = archivedObbNames.isNotEmpty()
+            val elevatedResult = if (requiresElevated) preflightElevatedMode(context) else Result.success(null)
+            val knownSize = declaredSize.takeIf { sizeKnown }
+            if (knownSize != null) StorageBudget.requireSpace(context.cacheDir, knownSize)
+            PackagePreflight(
+                format = com.vinstall.alwiz.model.PackageFormat.XAPK,
+                requiresElevatedObb = requiresElevated,
+                elevatedModeAvailable = elevatedResult.isSuccess,
+                declaredExtractionSize = knownSize,
+                validationFailure = elevatedResult.exceptionOrNull()?.message,
+            )
+        } catch (error: Exception) {
+            PackagePreflight(
+                format = com.vinstall.alwiz.model.PackageFormat.XAPK,
+                validationFailure = error.message ?: "Invalid XAPK",
+            )
+        }
     }
 
     private fun extractWithZipFile(
@@ -129,52 +204,35 @@ object XapkInstaller {
         outDir: File,
         onStep: (String) -> Unit
     ): XapkManifest? {
-        val tempFile = File(context.cacheDir, "xapk_extract_${System.nanoTime()}.xapk")
-        return try {
-            onStep("Copying to cache...")
-            copyUriToFile(context, uri, tempFile)
-
-            var manifest: XapkManifest? = null
-
-            ZipFile(tempFile).use { zip ->
-                val entries = zip.entries()
-                while (entries.hasMoreElements()) {
-                    val entry = entries.nextElement()
-                    when {
-                        !entry.isDirectory && isManifestEntry(entry.name) -> {
-                            val text = zip.getInputStream(entry).readBytes()
-                                .toString(Charsets.UTF_8)
-                                .trimStart('\uFEFF')
-                                .trim()
-                            DebugLog.d("XapkInstaller", "manifest.json found at entry='${entry.name}', raw: ${text.take(512)}")
-                            manifest = gson.fromJson(text, XapkManifest::class.java)
-                        }
-                        !entry.isDirectory && (entry.name.endsWith(".apk") || entry.name.endsWith(".obb")) -> {
-                            val fileName = File(entry.name).name
-                            val outFile = File(outDir, fileName)
-                            onStep("Extracting $fileName...")
-                            zip.getInputStream(entry).buffered(FileUtil.BUFFER_SIZE).use { input ->
-                                outFile.outputStream().buffered(FileUtil.BUFFER_SIZE).use { out ->
-                                    input.copyTo(out, FileUtil.BUFFER_SIZE)
-                                }
-                            }
-                            DebugLog.d("XapkInstaller", "Extracted: $fileName (${outFile.length()} bytes)")
-                        }
+        val stream = FileUtil.openStream(context, uri) ?: throw IOException("Cannot open the selected XAPK")
+        val guard = ArchiveExtractionGuard(outDir)
+        var manifest: XapkManifest? = null
+        ZipInputStream(stream.buffered(FileUtil.BUFFER_SIZE)).use { zip ->
+            var entry = zip.nextEntry
+            while (entry != null) {
+                guard.recordEntry(entry.name, entry.isDirectory)
+                when {
+                    !entry.isDirectory && isManifestEntry(entry.name) -> {
+                        val text = ArchiveExtractionGuard.readMetadata(zip)
+                            .toString(Charsets.UTF_8).trimStart('\uFEFF').trim()
+                        DebugLog.d("XapkInstaller", "manifest.json found at entry='${entry.name}'")
+                        manifest = gson.fromJson(text, XapkManifest::class.java)
+                    }
+                    !entry.isDirectory && (
+                        entry.name.endsWith(".apk", ignoreCase = true) ||
+                            entry.name.endsWith(".obb", ignoreCase = true)
+                    ) -> {
+                        val outFile = guard.destination(entry.name, ArchiveExtractionGuard.XAPK_PAYLOAD_EXTENSIONS)
+                        onStep("Extracting ${outFile.name}...")
+                        guard.extract(zip, outFile)
+                        DebugLog.d("XapkInstaller", "Extracted: ${outFile.name} (${outFile.length()} bytes)")
                     }
                 }
-            }
-            manifest
-        } finally {
-            tempFile.delete()
-        }
-    }
-
-    private fun copyUriToFile(context: Context, uri: Uri, dest: File) {
-        FileUtil.openStream(context, uri)?.use { input ->
-            dest.outputStream().buffered(FileUtil.BUFFER_SIZE).use { output ->
-                input.copyTo(output, FileUtil.BUFFER_SIZE)
+                zip.closeEntry()
+                entry = zip.nextEntry
             }
         }
+        return manifest
     }
 
     private fun isManifestEntry(name: String): Boolean {
@@ -187,7 +245,7 @@ object XapkInstaller {
 
     private data class ObbCopy(val source: File, val destination: File)
 
-    private fun preflightElevatedMode(context: Context): Result<ElevatedMode> {
+    internal fun preflightElevatedMode(context: Context): Result<ElevatedMode> {
         val mode = AppSettings.getInstallMode(context)
         return when (mode) {
             InstallMode.NORMAL -> selectElevatedMode(mode, false, false, false, false)

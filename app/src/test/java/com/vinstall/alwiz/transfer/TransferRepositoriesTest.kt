@@ -14,6 +14,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -90,6 +92,59 @@ class TransferRepositoriesTest {
         assertNotNull(repository.find(entry.id))
         assertEquals(1, repository.cleanupExpired(entry.createdAt + TimeUnit.DAYS.toMillis(8)))
         assertTrue(repository.list().isEmpty())
+    }
+
+    @Test
+    fun exportRegistrationRenamesSameDirectoryInputAtomically() {
+        val exportDirectory = File(context.filesDir, "exports").apply { mkdirs() }
+        val source = File(exportDirectory, "friendly-name.apkv").apply { writeBytes(byteArrayOf(1, 2, 3, 4)) }
+        val entry = ExportRepository(context).register(source)
+
+        assertFalse(source.exists())
+        assertTrue(entry.file.isFile)
+        assertEquals("friendly-name.apkv", entry.displayName)
+        assertEquals(byteArrayOf(1, 2, 3, 4).toList(), entry.file.readBytes().toList())
+    }
+
+    @Test
+    fun concurrentCleanupCannotDeleteExportBeingRegistered() {
+        val exportDirectory = File(context.filesDir, "exports").apply { mkdirs() }
+        val source = File(exportDirectory, "concurrent.apkv").apply { writeBytes(ByteArray(4096) { 7 }) }
+        val repositoryA = ExportRepository(context)
+        val repositoryB = ExportRepository(context)
+        val start = CountDownLatch(1)
+        val executor = Executors.newFixedThreadPool(2)
+        try {
+            val registered = executor.submit<ExportEntry> { start.await(); repositoryA.register(source) }
+            val cleaned = executor.submit<Int> { start.await(); repositoryB.cleanupExpired() }
+            start.countDown()
+            val entry = registered.get(5, TimeUnit.SECONDS)
+            cleaned.get(5, TimeUnit.SECONDS)
+            assertNotNull(repositoryA.find(entry.id))
+            assertTrue(entry.file.isFile)
+        } finally {
+            executor.shutdownNow()
+        }
+    }
+
+    @Test
+    fun exportCleanupUsesGraceForOrphansAndRemovesOldPartialArtifacts() {
+        val exportDirectory = File(context.filesDir, "exports").apply { mkdirs() }
+        val recentOrphan = File(exportDirectory, "recent.apkv").apply { writeBytes(byteArrayOf(1)) }
+        val oldOrphan = File(exportDirectory, "old.apkv").apply {
+            writeBytes(byteArrayOf(2))
+            setLastModified(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(2))
+        }
+        val stalePartial = File(exportDirectory, ".export.partial").apply {
+            writeBytes(byteArrayOf(3))
+            setLastModified(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(2))
+        }
+
+        ExportRepository(context).list()
+
+        assertTrue(recentOrphan.exists())
+        assertFalse(oldOrphan.exists())
+        assertFalse(stalePartial.exists())
     }
 
     private fun cleanPrivateTransferFiles() {

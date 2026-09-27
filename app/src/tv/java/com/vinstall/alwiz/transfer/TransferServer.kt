@@ -25,6 +25,10 @@ import java.util.Collections
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -42,10 +46,19 @@ class TransferServer(
     private val context: Context,
     private val incomingRepository: IncomingPackageRepository = IncomingPackageRepository(context),
     private val exportRepository: ExportRepository = ExportRepository(context),
+    private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val random = SecureRandom()
     private val running = AtomicBoolean(false)
-    private val clients = Executors.newCachedThreadPool()
+    private val acceptor = Executors.newSingleThreadExecutor()
+    private val clients = ThreadPoolExecutor(
+        CLIENT_CORE_THREADS,
+        CLIENT_MAX_THREADS,
+        30L,
+        TimeUnit.SECONDS,
+        ArrayBlockingQueue(CLIENT_QUEUE_CAPACITY),
+        ThreadPoolExecutor.AbortPolicy(),
+    ).apply { allowCoreThreadTimeOut(true) }
     private val maintenance = Executors.newSingleThreadScheduledExecutor()
     private val failedAttempts = ConcurrentHashMap<String, PairingAttemptWindow>()
     private val activeClients = ConcurrentHashMap.newKeySet<Socket>()
@@ -71,7 +84,7 @@ class TransferServer(
         serverSocket = socket
         url = "http://${findLanAddress()}:${socket.localPort}"
         stateMutable.value = TransferSessionState.AwaitingPairing(url, pairingCode)
-        clients.execute { acceptLoop(socket) }
+        acceptor.execute { acceptLoop(socket) }
         maintenance.scheduleWithFixedDelay(::expireInactiveSession, 30, 30, TimeUnit.SECONDS)
     }
 
@@ -82,9 +95,11 @@ class TransferServer(
         runCatching { serverSocket?.close() }
         serverSocket = null
         activeClients.forEach { runCatching { it.close() } }
-        activeClients.toList().forEach(activeClients::remove)
+        activeClients.clear()
+        acceptor.shutdownNow()
         clients.shutdownNow()
         maintenance.shutdownNow()
+        awaitShutdown(acceptor, clients, maintenance)
         stateMutable.value = TransferSessionState.Stopped
     }
 
@@ -93,9 +108,26 @@ class TransferServer(
     private fun acceptLoop(socket: ServerSocket) {
         while (running.get()) {
             try {
-                val client = socket.accept().apply { soTimeout = SOCKET_TIMEOUT_MS }
+                val client = socket.accept().apply { soTimeout = HEADER_TIMEOUT_MS }
                 activeClients += client
-                clients.execute { handleClient(client) }
+                try {
+                    clients.execute { handleClient(client) }
+                } catch (_: RejectedExecutionException) {
+                    runCatching {
+                        client.use {
+                            val output = BufferedOutputStream(it.getOutputStream())
+                            respond(
+                                output,
+                                503,
+                                "Service Unavailable",
+                                "text/plain; charset=utf-8",
+                                "Server is busy".toByteArray(),
+                            )
+                            output.flush()
+                        }
+                    }
+                    activeClients -= client
+                }
             } catch (error: IOException) {
                 if (running.get()) stateMutable.value = TransferSessionState.Error(error.message ?: "Transfer server stopped")
             }
@@ -112,7 +144,10 @@ class TransferServer(
             when {
                 request.method == "GET" && request.path == "/" -> servePage(request, output)
                 request.method == "POST" && request.path == "/api/pair" -> pair(request, input, output, client)
-                request.method == "POST" && request.path == "/api/uploads" -> upload(request, input, output)
+                request.method == "POST" && request.path == "/api/uploads" -> {
+                    client.soTimeout = UPLOAD_INACTIVITY_TIMEOUT_MS
+                    upload(request, input, output)
+                }
                 request.method == "GET" && request.path.startsWith("/api/exports/") -> downloadExport(request, output)
                 else -> respond(output, 404, "Not Found", "text/plain; charset=utf-8", "Not found".toByteArray())
             }
@@ -126,6 +161,11 @@ class TransferServer(
                 } finally {
                     runCatching { output.flush() }
                 }
+            }
+        } catch (error: Exception) {
+            // A browser may disconnect while queued or while Receive is closing. That is not a server crash.
+            if (running.get() && !socket.isClosed) {
+                stateMutable.value = TransferSessionState.Error(error.message ?: "Transfer failed")
             }
         } finally {
             activeClients -= socket
@@ -153,7 +193,7 @@ class TransferServer(
 
     private fun pair(request: Request, input: InputStream, output: OutputStream, client: Socket) {
         val address = client.inetAddress.hostAddress ?: "unknown"
-        val now = System.currentTimeMillis()
+        val now = clock()
         val attempt = failedAttempts.computeIfAbsent(address) { PairingAttemptWindow() }
         if (attempt.isBlocked(now)) throw HttpException(429, "Too Many Requests", "Too many attempts; try again shortly")
         val length = request.contentLength(limit = MAX_PAIR_BODY)
@@ -290,7 +330,7 @@ class TransferServer(
 
     private fun authorize(request: Request): Boolean {
         val expected = sessionToken ?: return false
-        if (isPairingSessionExpired(lastSessionActivity, System.currentTimeMillis())) {
+        if (isPairingSessionExpired(lastSessionActivity, clock())) {
             expireSession()
             return false
         }
@@ -307,11 +347,19 @@ class TransferServer(
     }
 
     private fun touchSession() {
-        lastSessionActivity = System.currentTimeMillis()
+        lastSessionActivity = clock()
     }
 
     private fun expireInactiveSession() {
-        if (sessionToken != null && isPairingSessionExpired(lastSessionActivity, System.currentTimeMillis())) expireSession()
+        if (sessionToken != null && isPairingSessionExpired(lastSessionActivity, clock())) expireSession()
+    }
+
+    private fun awaitShutdown(vararg executors: ExecutorService) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2)
+        executors.forEach { executor ->
+            val remaining = deadline - System.nanoTime()
+            if (remaining > 0) runCatching { executor.awaitTermination(remaining, TimeUnit.NANOSECONDS) }
+        }
     }
 
     @Synchronized
@@ -523,6 +571,10 @@ class TransferServer(
         private const val MAX_HEADER_BYTES = 32 * 1024
         private const val MAX_PAIR_BODY = 4 * 1024L
         private const val MAX_NON_FILE_PART = 1024 * 1024
-        private const val SOCKET_TIMEOUT_MS = 120_000
+        private const val HEADER_TIMEOUT_MS = 15_000
+        private const val UPLOAD_INACTIVITY_TIMEOUT_MS = 120_000
+        private const val CLIENT_CORE_THREADS = 2
+        private const val CLIENT_MAX_THREADS = 4
+        private const val CLIENT_QUEUE_CAPACITY = 8
     }
 }

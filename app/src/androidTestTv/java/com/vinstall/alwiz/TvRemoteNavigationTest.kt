@@ -89,6 +89,50 @@ class TvRemoteNavigationTest {
                     assertEquals(listOf(uris[1], uris[0]), adapter.getOrderedUris())
                     assertTrue(moveDown.isFocusable)
                 }
+                Thread.sleep(500)
+                scenario.onActivity { activity ->
+                    val adapter = activity.findViewById<RecyclerView>(R.id.recycler_queue).adapter as QueueFileAdapter
+                    assertEquals(listOf(uris[1], uris[0]), adapter.getOrderedUris())
+                }
+            }
+        } finally {
+            testDirectory.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun removingFinalQueueItemDisablesInstallAndFocusesSelect() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val testDirectory = File(context.filesDir, "tv_queue_remove_${System.nanoTime()}").apply { mkdirs() }
+        val packageFile = File(testDirectory, "only.apk").apply { writeBytes(byteArrayOf(1)) }
+        val intent = Intent(context, MainActivity::class.java).apply {
+            putParcelableArrayListExtra(
+                MainActivity.EXTRA_PACKAGE_URIS,
+                arrayListOf(uriFor(context, packageFile)),
+            )
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        try {
+            ActivityScenario.launch<MainActivity>(intent).use { scenario ->
+                Thread.sleep(500)
+                scenario.onActivity { activity ->
+                    val recycler = activity.findViewById<RecyclerView>(R.id.recycler_queue)
+                    recycler.measure(
+                        View.MeasureSpec.makeMeasureSpec(1280, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(720, View.MeasureSpec.EXACTLY),
+                    )
+                    recycler.layout(0, 0, 1280, 720)
+                    val remove = recycler.findViewHolderForAdapterPosition(0)
+                        ?.itemView?.findViewWithTag<View>("queue_remove")
+                    requireNotNull(remove).performClick()
+                }
+                InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+                scenario.onActivity { activity ->
+                    assertTrue(!activity.findViewById<View>(R.id.btn_install).isEnabled)
+                    assertTrue(activity.findViewById<View>(R.id.btn_select).hasFocus())
+                    assertEquals(0, (activity.findViewById<RecyclerView>(R.id.recycler_queue).adapter as QueueFileAdapter).itemCount)
+                }
             }
         } finally {
             testDirectory.deleteRecursively()

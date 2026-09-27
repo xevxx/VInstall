@@ -34,7 +34,9 @@ data class QueueItem(
 class QueueFileAdapter(
     private val items: MutableList<QueueItem>,
     private val onStartDrag: (RecyclerView.ViewHolder) -> Unit,
-    private val onItemClick: ((QueueItem) -> Unit)? = null
+    private val onItemClick: ((QueueItem) -> Unit)? = null,
+    private val onQueueChanged: ((List<QueueItem>) -> Unit)? = null,
+    private val onItemRemoved: ((Uri) -> Unit)? = null,
 ) : RecyclerView.Adapter<QueueFileAdapter.ViewHolder>() {
 
     private val removedUris = mutableSetOf<Uri>()
@@ -142,6 +144,7 @@ class QueueFileAdapter(
         }
         notifyItemMoved(from, to)
         notifyItemRangeChanged(minOf(from, to), kotlin.math.abs(from - to) + 1)
+        onQueueChanged?.invoke(items.toList())
     }
 
     fun getOrderedUris(): List<Uri> = items.map { it.uri }
@@ -149,8 +152,14 @@ class QueueFileAdapter(
     fun getOrderedItems(): List<QueueItem> = items.toList()
 
     fun setItems(newItems: List<QueueItem>) {
+        val incoming = newItems.filterNot { it.uri in removedUris }.associateBy { it.uri }
+        val merged = items.mapNotNull { incoming[it.uri] }.toMutableList()
+        val retained = merged.mapTo(HashSet()) { it.uri }
+        newItems.forEach { item ->
+            if (item.uri !in removedUris && retained.add(item.uri)) merged += item
+        }
         items.clear()
-        items.addAll(newItems.filterNot { it.uri in removedUris })
+        items.addAll(merged)
         notifyDataSetChanged()
     }
 
@@ -179,10 +188,17 @@ class QueueFileAdapter(
     private fun removeFromHolder(holder: ViewHolder) {
         val position = holder.bindingAdapterPosition
         if (position == RecyclerView.NO_POSITION) return
+        removeAt(position)
+    }
+
+    internal fun removeAt(position: Int) {
+        if (position !in items.indices) return
         removedUris += items[position].uri
-        items.removeAt(position)
+        val removed = items.removeAt(position)
         notifyItemRemoved(position)
         notifyItemRangeChanged(position, items.size - position)
+        onItemRemoved?.invoke(removed.uri)
+        onQueueChanged?.invoke(items.toList())
     }
 
     private fun formatSize(bytes: Long): String = when {

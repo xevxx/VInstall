@@ -16,6 +16,9 @@ import com.vinstall.alwiz.settings.AppSettings
 import com.vinstall.alwiz.util.DebugLog
 import com.vinstall.alwiz.util.FileUtil
 import com.vinstall.alwiz.installer.InstallHelper
+import com.vinstall.alwiz.installer.PackagePreflight
+import com.vinstall.alwiz.installer.PackagePreflightInspector
+import com.vinstall.alwiz.installer.validatePackageBatch
 import com.vinstall.alwiz.settings.InstallMode
 import com.vinstall.alwiz.util.MetadataReader
 import com.vinstall.alwiz.util.NotificationHelper
@@ -305,12 +308,26 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun removeQueueItem(uri: Uri) {
+        _queueItems.value = _queueItems.value.filterNot { it.uri == uri }
+        viewModelScope.launch(Dispatchers.IO) {
+            IncomingPackageRepository(getApplication()).deleteByUri(uri)
+        }
+    }
+
     fun enqueueFiles(queueItems: List<QueueItem>) {
         if (queueItems.isEmpty()) return
         currentInstallJob?.cancel()
         currentInstallJob = viewModelScope.launch(Dispatchers.IO) {
             isProcessingQueue = true
             try {
+                _state.value = InstallState.Analyzing
+                val preflights = queueItems.map { preflightPackage(it) }
+                val batchPreflight = validatePackageBatch(preflights)
+                if (batchPreflight.isFailure) {
+                    _state.value = InstallState.Error(batchPreflight.exceptionOrNull()?.message ?: "Package preflight failed")
+                    return@launch
+                }
                 val total = queueItems.size
                 for ((index, item) in queueItems.withIndex()) {
                     _batchProgress.value = BatchProgress(index + 1, total, "")
@@ -332,6 +349,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }
             _state.value = InstallState.Idle
         }
+    }
+
+    internal fun preflightPackage(item: QueueItem): PackagePreflight {
+        val format = PackageFormat.fromFileName(item.displayName)
+        if (format == PackageFormat.UNKNOWN) {
+            return PackagePreflight(format, validationFailure = "Unsupported package: ${item.displayName}")
+        }
+        if (format == PackageFormat.APKV && item.isEncryptedApkv && item.apkvPassword == null) {
+            return PackagePreflight(format, validationFailure = "Password is required for ${item.displayName}.")
+        }
+        return PackagePreflightInspector.inspect(getApplication(), item.uri, format, item.apkvPassword)
     }
 
     fun submitBatchApkvPassword(uri: Uri, password: String, onResult: (Boolean) -> Unit) {

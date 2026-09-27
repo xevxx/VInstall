@@ -120,11 +120,8 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             viewModel.queueItems.collect { newItems ->
                 if (newItems.isEmpty()) return@collect
-                if (newItems.size != queueAdapter.itemCount) {
-                    queueAdapter.setItems(newItems)
-                } else {
-                    newItems.forEach { queueAdapter.updateItem(it) }
-                }
+                queueAdapter.setItems(newItems)
+                if (isQueueMode) updateQueueControls()
             }
         }
 
@@ -191,7 +188,9 @@ class MainActivity : AppCompatActivity() {
         queueAdapter = QueueFileAdapter(
             items = mutableListOf(),
             onStartDrag = { holder -> itemTouchHelper.startDrag(holder) },
-            onItemClick = { item -> showBatchApkvPasswordDialog(item) }
+            onItemClick = { item -> showBatchApkvPasswordDialog(item) },
+            onQueueChanged = { updateQueueControls() },
+            onItemRemoved = { uri -> viewModel.removeQueueItem(uri) },
         )
         itemTouchHelper = ItemTouchHelper(QueueDragCallback(queueAdapter))
         itemTouchHelper.attachToRecyclerView(binding.recyclerQueue)
@@ -212,6 +211,15 @@ class MainActivity : AppCompatActivity() {
         binding.btnSelect.isEnabled = true
         binding.btnCancel.isVisible = false
         binding.btnSelectSplits.isVisible = false
+        updateQueueControls()
+    }
+
+    private fun updateQueueControls() {
+        if (!isQueueMode) return
+        val count = queueAdapter.itemCount
+        binding.textQueueLabel.text = getString(R.string.queue_label, count)
+        binding.btnInstall.isEnabled = count > 0
+        if (count == 0 && DeviceProfile.isTv(this)) binding.btnSelect.post { binding.btnSelect.requestFocus() }
     }
 
     private fun exitQueueMode() {
@@ -337,7 +345,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 binding.progressBar.isVisible = false
                 binding.textStatus.isVisible = false
-                binding.btnInstall.isEnabled = isQueueMode
+                binding.btnInstall.isEnabled = isQueueMode && queueAdapter.itemCount > 0
                 binding.btnSelectSplits.isVisible = false
                 binding.btnCancel.isVisible = false
                 binding.btnSelect.isEnabled = true
