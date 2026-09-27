@@ -16,4 +16,24 @@
     <string name="tv_settings_desc">Installation mode, dialogs, and appearance</string>
     <string name="tv_debug_title">Debug</string>
     <string name="tv_debug_desc">Inspect diagnostic logs</string>
+    <string name="tv_picker_title">Choose packages</string>
+    <string name="tv_picker_subtitle">Use the D-pad to browse storage. Select one or more packages, then choose Review.</string>
+    <string name="tv_picker_location">Location</string>
+    <string name="tv_picker_storage">Device storage</string>
+    <string name="tv_picker_received">Received packages</string>
+    <string name="tv_picker_parent">Up one folder</string>
+    <string name="tv_picker_empty">No supported packages or folders are here.</string>
+    <string name="tv_picker_selected_count">%1$d selected</string>
+    <string name="tv_picker_review">Review selected</string>
+    <string name="tv_picker_other_manager">Open another file manager</string>
+    <string name="tv_picker_permission_title">Storage access is needed</string>
+    <string name="tv_picker_permission_message">Allow VInstall TV to manage files so its remote-friendly browser can read APK, APKM, APKS, APKV, XAPK, and ZIP files. You can still use another installed file manager instead.</string>
+    <string name="tv_picker_allow_access">Allow storage access</string>
+    <string name="tv_picker_permission_denied">Storage access was not granted. Received packages are still available.</string>
+    <string name="tv_picker_no_file_manager">No compatible file manager can return a selected file.</string>
+    <string name="tv_picker_folder_badge">FOLDER</string>
+    <string name="tv_picker_package_badge">PACKAGE</string>
+    <string name="tv_picker_selected_badge">SELECTED</string>
+    <string name="tv_picker_show_system">Show system folders</string>
+    <string name="tv_picker_hide_system">Hide system folders</string>
 </resources>

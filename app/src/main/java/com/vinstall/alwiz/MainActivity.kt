@@ -40,6 +40,7 @@ import com.vinstall.alwiz.util.DebugLog
 import com.vinstall.alwiz.util.FileUtil
 import com.vinstall.alwiz.util.NotificationHelper
 import com.vinstall.alwiz.util.DeviceProfile
+import com.vinstall.alwiz.util.TvFocus
 import kotlinx.coroutines.launch
 import rikka.shizuku.Shizuku
 
@@ -78,17 +79,15 @@ class MainActivity : AppCompatActivity() {
         updateInstallModeStatus()
     }
 
-    private val filePicker = registerForActivityResult(
+    private val documentsPicker = registerForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments()
-    ) { uris ->
-        when {
-            uris.isEmpty() -> return@registerForActivityResult
-            uris.size == 1 -> {
-                exitQueueMode()
-                viewModel.onFileSelected(uris[0])
-            }
-            else -> enterQueueMode(uris)
-        }
+    ) { uris -> handlePickedUris(uris) }
+
+    private val tvFilePicker = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode != RESULT_OK) return@registerForActivityResult
+        handlePickedUris(packageUrisFrom(result.data))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -111,11 +110,12 @@ class MainActivity : AppCompatActivity() {
             supportActionBar?.setDisplayHomeAsUpEnabled(true)
         }
         setupQueueRecycler()
+        if (DeviceProfile.isTv(this)) TvFocus.installFocusableChildren(binding.layoutButtons)
 
         Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener)
         Shizuku.addBinderDeadListener(shizukuBinderDeadListener)
 
-        binding.btnSelect.setOnClickListener { filePicker.launch(arrayOf("*/*")) }
+        binding.btnSelect.setOnClickListener { openPackagePicker() }
 
         lifecycleScope.launch {
             viewModel.queueItems.collect { newItems ->
@@ -181,7 +181,13 @@ class MainActivity : AppCompatActivity() {
         updateInstallModeStatus()
         DebugLog.i("MainActivity", "Application started")
 
-        if (savedInstanceState == null) handlePackageIntent(intent)
+        if (savedInstanceState == null) {
+            val hasPackageIntent = packageUrisFrom(intent).isNotEmpty() || intent.data != null
+            handlePackageIntent(intent)
+            if (DeviceProfile.isTv(this) && !hasPackageIntent) {
+                binding.btnSelect.post { binding.btnSelect.requestFocus() }
+            }
+        }
     }
 
     private fun setupQueueRecycler() {
@@ -197,6 +203,35 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerQueue.layoutManager = LinearLayoutManager(this)
         binding.recyclerQueue.adapter = queueAdapter
         binding.recyclerQueue.isNestedScrollingEnabled = true
+    }
+
+    private fun openPackagePicker() {
+        if (DeviceProfile.isTv(this)) {
+            tvFilePicker.launch(Intent().setClassName(this, "com.vinstall.alwiz.TvFilePickerActivity"))
+        } else {
+            documentsPicker.launch(arrayOf("*/*"))
+        }
+    }
+
+    private fun handlePickedUris(uris: List<Uri>) {
+        when {
+            uris.isEmpty() -> return
+            uris.size == 1 -> {
+                exitQueueMode()
+                viewModel.onFileSelected(uris.first())
+            }
+            else -> enterQueueMode(uris)
+        }
+    }
+
+    private fun packageUrisFrom(sourceIntent: Intent?): List<Uri> {
+        if (sourceIntent == null) return emptyList()
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            sourceIntent.getParcelableArrayListExtra(EXTRA_PACKAGE_URIS, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            sourceIntent.getParcelableArrayListExtra(EXTRA_PACKAGE_URIS)
+        }.orEmpty()
     }
 
     private fun enterQueueMode(uris: List<Uri>) {
@@ -498,12 +533,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun handlePackageIntent(sourceIntent: Intent?) {
         if (sourceIntent == null) return
-        val received = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            sourceIntent.getParcelableArrayListExtra(EXTRA_PACKAGE_URIS, Uri::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            sourceIntent.getParcelableArrayListExtra(EXTRA_PACKAGE_URIS)
-        }.orEmpty()
+        val received = packageUrisFrom(sourceIntent)
 
         when {
             received.size == 1 -> {

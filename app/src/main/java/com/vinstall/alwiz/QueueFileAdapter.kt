@@ -65,6 +65,7 @@ class QueueFileAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = items[position]
+        val isTv = DeviceProfile.isTv(holder.itemView.context)
         holder.textNumber.text = (position + 1).toString()
 
         if (item.appIcon != null) {
@@ -87,12 +88,12 @@ class QueueFileAdapter(
                 holder.itemView,
                 com.google.android.material.R.attr.colorErrorContainer
             )
-            holder.itemView.setBackgroundColor(errorColor)
+            if (!isTv) holder.itemView.setBackgroundColor(errorColor)
             holder.textHash.isVisible = true
             holder.textHash.text = holder.itemView.context.getString(R.string.apkv_tap_to_unlock)
             holder.itemView.setOnClickListener { onItemClick?.invoke(item) }
         } else {
-            holder.itemView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            if (!isTv) holder.itemView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
             holder.itemView.setOnClickListener(null)
 
             when {
@@ -110,7 +111,7 @@ class QueueFileAdapter(
             }
         }
 
-        if (DeviceProfile.isTv(holder.itemView.context)) {
+        if (isTv) {
             holder.iconDrag.isVisible = false
             holder.iconDrag.setOnTouchListener(null)
             holder.itemView.findViewWithTag<View>("queue_move_up")?.apply {

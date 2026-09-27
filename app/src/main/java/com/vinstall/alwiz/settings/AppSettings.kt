@@ -36,8 +36,10 @@ object AppSettings {
         prefs(context).edit().putBoolean(KEY_DEBUG_WINDOW, enabled).apply()
     }
 
-    fun getTheme(context: Context): String =
-        prefs(context).getString(KEY_THEME, "system") ?: "system"
+    fun getTheme(context: Context): String {
+        val defaultTheme = if (DeviceProfile.isTv(context)) "light" else "system"
+        return prefs(context).getString(KEY_THEME, defaultTheme) ?: defaultTheme
+    }
 
     fun setTheme(context: Context, theme: String) {
         prefs(context).edit().putString(KEY_THEME, theme).apply()

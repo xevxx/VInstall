@@ -124,7 +124,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/open_packages_button"
-                style="@style/Widget.Material3.Button"
+                style="@style/Widget.VInstall.TV.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minHeight="56dp"
@@ -133,7 +133,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/delete_packages_button"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.VInstall.TV.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"

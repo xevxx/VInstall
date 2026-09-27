@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.UniversalInstaller" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/tv_accent</item>
+        <item name="colorOnPrimary">@color/tv_on_accent</item>
+        <item name="colorPrimaryContainer">@color/tv_focus_surface</item>
+        <item name="colorOnPrimaryContainer">@color/tv_on_surface</item>
+        <item name="colorSurface">@color/tv_background</item>
+        <item name="colorOnSurface">@color/tv_on_surface</item>
+        <item name="colorSurfaceVariant">@color/tv_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/tv_on_surface_variant</item>
+        <item name="android:windowBackground">@color/tv_background</item>
+        <item name="android:colorAccent">@color/tv_accent</item>
+        <item name="android:textColorPrimary">@color/tv_on_surface</item>
+        <item name="android:textColorSecondary">@color/tv_on_surface_variant</item>
+        <item name="android:navigationBarColor">@color/tv_background</item>
+        <item name="android:statusBarColor">@color/tv_background</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="23">false</item>
+        <item name="materialButtonStyle">@style/Widget.VInstall.TV.Button</item>
+    </style>
+
+    <style name="Theme.UniversalInstaller.Transparent" parent="Theme.UniversalInstaller">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+
+    <style name="Widget.VInstall.TV.Button" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/tv_button_background</item>
+        <item name="strokeColor">@color/tv_button_stroke</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="android:textColor">@color/tv_button_text</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="Widget.VInstall.TV.Button.Outlined" parent="Widget.VInstall.TV.Button" />
+
+    <style name="Widget.VInstall.TV.Button.Icon" parent="Widget.VInstall.TV.Button">
+        <item name="iconTint">@color/tv_button_text</item>
+        <item name="android:minWidth">56dp</item>
+    </style>
+</resources>

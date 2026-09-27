@@ -29,6 +29,7 @@ class InstallHistoryAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemHistoryBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         TvFocus.install(binding.root)
+        TvFocus.install(binding.btnDelete)
         return ViewHolder(binding)
     }
 
@@ -64,7 +65,10 @@ class InstallHistoryAdapter(
         holder.binding.statusIndicator.setBackgroundColor(color)
 
         holder.binding.root.setOnClickListener { onItemClick(entry) }
-        holder.binding.btnDelete.setOnClickListener { onDeleteClick(entry, holder.bindingAdapterPosition) }
+        holder.binding.btnDelete.setOnClickListener {
+            val currentPosition = holder.bindingAdapterPosition
+            if (currentPosition != RecyclerView.NO_POSITION) onDeleteClick(entry, currentPosition)
+        }
     }
 
     override fun getItemCount(): Int = entries.size

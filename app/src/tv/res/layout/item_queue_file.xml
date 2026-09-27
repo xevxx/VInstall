@@ -62,7 +62,7 @@
     </LinearLayout>
 
     <com.google.android.material.button.MaterialButton
-        style="@style/Widget.Material3.Button.IconButton"
+        style="@style/Widget.VInstall.TV.Button.Icon"
         android:layout_width="52dp"
         android:layout_height="52dp"
         android:contentDescription="@string/queue_move_up"
@@ -71,7 +71,7 @@
         android:text="↑" />
 
     <com.google.android.material.button.MaterialButton
-        style="@style/Widget.Material3.Button.IconButton"
+        style="@style/Widget.VInstall.TV.Button.Icon"
         android:layout_width="52dp"
         android:layout_height="52dp"
         android:contentDescription="@string/queue_move_down"
@@ -80,7 +80,7 @@
         android:text="↓" />
 
     <com.google.android.material.button.MaterialButton
-        style="@style/Widget.Material3.Button.IconButton"
+        style="@style/Widget.VInstall.TV.Button.Icon"
         android:layout_width="52dp"
         android:layout_height="52dp"
         android:contentDescription="@string/queue_remove"

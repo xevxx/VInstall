@@ -1,5 +1,7 @@
 <resources>
-    <color name="tv_focus_ring">#8AB4F8</color>
-    <color name="tv_focus_surface">#263A57</color>
-    <color name="tv_card_stroke">#667085</color>
+    <color name="tv_focus_ring">#3F444A</color>
+    <!-- Deliberately darker than the base surface so focus remains visible on TV panels
+         that compress the near-white range. The graphite ring remains the primary cue. -->
+    <color name="tv_focus_surface">#C9CDD2</color>
+    <color name="tv_card_stroke">#B8BCC2</color>
 </resources>

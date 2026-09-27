@@ -75,12 +75,12 @@ class TvHomeActivity : AppCompatActivity() {
                 addView(TextView(this@TvHomeActivity).apply {
                     text = getString(tile.title)
                     textSize = 22f
-                    setTextColor(ContextCompat.getColor(this@TvHomeActivity, R.color.on_surface))
+                    setTextColor(ContextCompat.getColor(this@TvHomeActivity, R.color.tv_on_surface))
                 })
                 addView(TextView(this@TvHomeActivity).apply {
                     text = getString(tile.description)
                     textSize = 14f
-                    setTextColor(ContextCompat.getColor(this@TvHomeActivity, R.color.on_surface_variant))
+                    setTextColor(ContextCompat.getColor(this@TvHomeActivity, R.color.tv_on_surface_variant))
                     setPadding(0, dp(8), 0, 0)
                     maxLines = 2
                 })
@@ -90,14 +90,14 @@ class TvHomeActivity : AppCompatActivity() {
                 val card = view as MaterialCardView
                 card.setStrokeColor(ContextCompat.getColor(
                     this@TvHomeActivity,
-                    if (focused) R.color.primary else R.color.tv_card_stroke_idle
+                    if (focused) R.color.tv_focus_ring else R.color.tv_card_stroke_idle
                 ))
-                card.animate()
-                    .scaleX(if (focused) 1.045f else 1f)
-                    .scaleY(if (focused) 1.045f else 1f)
-                    .translationZ(if (focused) dp(8).toFloat() else 0f)
-                    .setDuration(120L)
-                    .start()
+                card.strokeWidth = dp(if (focused) 4 else 2)
+                card.setCardBackgroundColor(ContextCompat.getColor(
+                    this@TvHomeActivity,
+                    if (focused) R.color.tv_focus_surface else R.color.tv_card_background
+                ))
+                card.cardElevation = dp(if (focused) 6 else 2).toFloat()
             }
         }
     }

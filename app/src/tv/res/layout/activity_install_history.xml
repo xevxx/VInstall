@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/tv_background"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/tv_safe_horizontal"
+    android:paddingVertical="@dimen/tv_safe_vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:background="@drawable/tv_focusable_background"
+        android:clickable="true"
+        android:focusable="true"
+        app:titleTextAppearance="@style/TextAppearance.Material3.HeadlineMedium" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_history"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="6dp" />
+
+        <TextView
+            android:id="@+id/text_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="@string/history_empty"
+            android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+            android:textColor="@color/tv_on_surface_variant"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:orientation="horizontal"
+        android:paddingTop="10dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_clear_history"
+            style="@style/Widget.VInstall.TV.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:text="@string/history_clear_all" />
+    </LinearLayout>
+</LinearLayout>

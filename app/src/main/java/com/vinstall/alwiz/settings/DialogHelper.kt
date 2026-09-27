@@ -10,6 +10,8 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.vinstall.alwiz.R
 import com.vinstall.alwiz.ui.ConfirmationBottomSheet
+import com.vinstall.alwiz.util.DeviceProfile
+import com.vinstall.alwiz.util.TvFocus
 
 class DialogController(
     private val onDismiss: () -> Unit,
@@ -101,12 +103,19 @@ object DialogHelper {
                 }
 
                 val dialog = builder.show()
+                val positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                val negative = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
                 if (isDangerous) {
                     val errorColor = MaterialColors.getColor(
                         activity.window.decorView,
                         androidx.appcompat.R.attr.colorError
                     )
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(errorColor)
+                    positive.setTextColor(errorColor)
+                }
+                TvFocus.install(positive)
+                TvFocus.install(negative)
+                if (DeviceProfile.isTv(activity)) {
+                    (if (isDangerous) negative else positive).requestFocus()
                 }
 
                 DialogController(

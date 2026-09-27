@@ -106,9 +106,9 @@
         android:gravity="end"
         android:orientation="horizontal"
         android:paddingTop="10dp">
-        <com.google.android.material.button.MaterialButton android:id="@+id/btn_select_splits" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="56dp" android:nextFocusRight="@id/btn_cancel" android:text="@string/select_splits" android:visibility="gone" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/btn_cancel" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="10dp" android:nextFocusRight="@id/btn_select" android:text="@string/cancel" android:visibility="gone" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/btn_select" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="10dp" android:nextFocusRight="@id/btn_install" android:text="@string/select_file" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_select_splits" style="@style/Widget.VInstall.TV.Button.Outlined" android:layout_width="wrap_content" android:layout_height="56dp" android:nextFocusRight="@id/btn_cancel" android:text="@string/select_splits" android:visibility="gone" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_cancel" style="@style/Widget.VInstall.TV.Button.Outlined" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="10dp" android:nextFocusRight="@id/btn_select" android:text="@string/cancel" android:visibility="gone" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_select" style="@style/Widget.VInstall.TV.Button.Outlined" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="10dp" android:nextFocusRight="@id/btn_install" android:text="@string/select_file" />
         <com.google.android.material.button.MaterialButton android:id="@+id/btn_install" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="12dp" android:enabled="false" android:nextFocusLeft="@id/btn_select" android:text="@string/install" />
     </LinearLayout>
 </LinearLayout>

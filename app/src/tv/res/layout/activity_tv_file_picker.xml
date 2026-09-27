@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/tv_background"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/tv_safe_horizontal"
+    android:paddingVertical="@dimen/tv_safe_vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="@color/tv_on_surface"
+        app:title="@string/tv_picker_title"
+        app:titleTextColor="@color/tv_on_surface"
+        app:titleTextAppearance="@style/TextAppearance.Material3.HeadlineMedium" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/tv_picker_subtitle"
+        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+        android:textColor="@color/tv_on_surface_variant" />
+
+    <LinearLayout
+        android:id="@+id/permission_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:background="@drawable/tv_focusable_background"
+        android:orientation="vertical"
+        android:padding="18dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/tv_picker_permission_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleLarge" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/tv_picker_permission_message"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="@color/tv_on_surface_variant" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/allow_access_button"
+            style="@style/Widget.VInstall.TV.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:layout_marginTop="12dp"
+            android:text="@string/tv_picker_allow_access" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/tv_picker_location"
+            android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+            android:textColor="@color/tv_on_surface_variant" />
+
+        <TextView
+            android:id="@+id/path_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:ellipsize="start"
+            android:singleLine="true"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="@color/tv_on_surface" />
+
+        <TextView
+            android:id="@+id/selected_count_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="@color/tv_accent" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="10dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/file_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="6dp" />
+
+        <TextView
+            android:id="@+id/empty_text"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="@string/tv_picker_empty"
+            android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+            android:textColor="@color/tv_on_surface_variant"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:orientation="horizontal"
+        android:paddingTop="10dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/show_system_button"
+            style="@style/Widget.VInstall.TV.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:nextFocusRight="@id/other_manager_button"
+            android:text="@string/tv_picker_show_system" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/other_manager_button"
+            style="@style/Widget.VInstall.TV.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:layout_marginStart="12dp"
+            android:nextFocusLeft="@id/show_system_button"
+            android:nextFocusRight="@id/review_button"
+            android:text="@string/tv_picker_other_manager" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/review_button"
+            style="@style/Widget.VInstall.TV.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:layout_marginStart="14dp"
+            android:enabled="false"
+            android:nextFocusLeft="@id/other_manager_button"
+            android:text="@string/tv_picker_review" />
+    </LinearLayout>
+</LinearLayout>

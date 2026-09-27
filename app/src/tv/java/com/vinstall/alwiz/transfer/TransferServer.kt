@@ -94,8 +94,10 @@ class TransferServer(
         failedAttempts.clear()
         runCatching { serverSocket?.close() }
         serverSocket = null
-        activeClients.forEach { runCatching { it.close() } }
-        activeClients.clear()
+        activeClients.forEach {
+            runCatching { it.close() }
+            activeClients.remove(it)
+        }
         acceptor.shutdownNow()
         clients.shutdownNow()
         maintenance.shutdownNow()

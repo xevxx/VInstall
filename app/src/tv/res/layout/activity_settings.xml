@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/tv_background"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/tv_safe_horizontal"
+    android:paddingVertical="@dimen/tv_safe_vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        app:titleTextAppearance="@style/TextAppearance.Material3.HeadlineMedium" />
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/settings_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingBottom="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:layout_weight="1"
+                    app:cardBackgroundColor="@color/tv_card_background"
+                    app:cardCornerRadius="14dp"
+                    app:strokeColor="@color/tv_card_stroke"
+                    app:strokeWidth="2dp">
+
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/settings_section_install_mode" android:textAppearance="@style/TextAppearance.Material3.TitleLarge" />
+                        <RadioGroup android:id="@+id/radio_group_mode" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="vertical">
+                            <RadioButton android:id="@+id/radio_btn_normal" android:layout_width="match_parent" android:layout_height="56dp" android:background="@drawable/tv_focusable_background" android:focusable="true" android:gravity="center_vertical" android:nextFocusRight="@id/row_debug" android:paddingHorizontal="14dp" android:text="@string/mode_normal" android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                            <RadioButton android:id="@+id/radio_btn_root" android:layout_width="match_parent" android:layout_height="56dp" android:background="@drawable/tv_focusable_background" android:focusable="true" android:gravity="center_vertical" android:nextFocusRight="@id/row_clear_cache" android:paddingHorizontal="14dp" android:text="@string/mode_root" android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                            <RadioButton android:id="@+id/radio_btn_shizuku" android:layout_width="match_parent" android:layout_height="56dp" android:background="@drawable/tv_focusable_background" android:focusable="true" android:gravity="center_vertical" android:nextFocusRight="@id/row_confirm" android:paddingHorizontal="14dp" android:text="@string/mode_shizuku" android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                        </RadioGroup>
+                        <TextView android:id="@+id/text_root_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textAppearance="@style/TextAppearance.Material3.BodyMedium" android:textColor="@color/tv_on_surface_variant" />
+                        <TextView android:id="@+id/text_shizuku_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textAppearance="@style/TextAppearance.Material3.BodyMedium" android:textColor="@color/tv_on_surface_variant" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btn_request_shizuku" style="@style/Widget.VInstall.TV.Button.Outlined" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="10dp" android:text="@string/shizuku_request_permission" android:visibility="gone" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:layout_weight="1"
+                    app:cardBackgroundColor="@color/tv_card_background"
+                    app:cardCornerRadius="14dp"
+                    app:strokeColor="@color/tv_card_stroke"
+                    app:strokeWidth="2dp">
+
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/settings_section_behavior" android:textAppearance="@style/TextAppearance.Material3.TitleLarge" />
+
+                        <LinearLayout android:id="@+id/row_debug" android:tag="settings_debug_row" android:layout_width="match_parent" android:layout_height="64dp" android:layout_marginTop="10dp" android:background="@drawable/tv_focusable_background" android:clickable="true" android:focusable="true" android:gravity="center_vertical" android:nextFocusLeft="@id/radio_btn_normal" android:orientation="horizontal" android:paddingHorizontal="14dp">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/settings_debug_window" android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                            <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switch_debug_window" android:layout_width="wrap_content" android:layout_height="wrap_content" android:clickable="false" android:focusable="false" />
+                        </LinearLayout>
+
+                        <LinearLayout android:id="@+id/row_clear_cache" android:tag="settings_clear_cache_row" android:layout_width="match_parent" android:layout_height="64dp" android:background="@drawable/tv_focusable_background" android:clickable="true" android:focusable="true" android:gravity="center_vertical" android:nextFocusLeft="@id/radio_btn_root" android:orientation="horizontal" android:paddingHorizontal="14dp">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/settings_clear_cache" android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                            <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switch_clear_cache" android:layout_width="wrap_content" android:layout_height="wrap_content" android:clickable="false" android:focusable="false" />
+                        </LinearLayout>
+
+                        <LinearLayout android:id="@+id/row_confirm" android:tag="settings_confirm_row" android:layout_width="match_parent" android:layout_height="64dp" android:background="@drawable/tv_focusable_background" android:clickable="true" android:focusable="true" android:gravity="center_vertical" android:nextFocusLeft="@id/radio_btn_shizuku" android:orientation="horizontal" android:paddingHorizontal="14dp">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/settings_confirm_install" android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                            <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switch_confirm_install" android:layout_width="wrap_content" android:layout_height="wrap_content" android:clickable="false" android:focusable="false" />
+                        </LinearLayout>
+
+                        <LinearLayout android:id="@+id/layout_dialog_style" android:layout_width="match_parent" android:layout_height="64dp" android:background="@drawable/tv_focusable_background" android:clickable="true" android:focusable="true" android:gravity="center_vertical" android:orientation="horizontal" android:paddingHorizontal="14dp">
+                            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/settings_dialog_style" android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                                <TextView android:id="@+id/text_current_dialog_style" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.BodyMedium" android:textColor="@color/tv_on_surface_variant" />
+                            </LinearLayout>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/nav_right_arrow" android:textSize="22sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:baselineAligned="false" android:orientation="horizontal">
+                <com.google.android.material.card.MaterialCardView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_margin="8dp" android:layout_weight="1" app:cardBackgroundColor="@color/tv_card_background" app:cardCornerRadius="14dp" app:strokeColor="@color/tv_card_stroke" app:strokeWidth="2dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/history_title" android:textAppearance="@style/TextAppearance.Material3.TitleLarge" />
+                        <TextView android:id="@+id/text_history_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textAppearance="@style/TextAppearance.Material3.BodyMedium" android:textColor="@color/tv_on_surface_variant" />
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="end" android:orientation="horizontal">
+                            <com.google.android.material.button.MaterialButton android:id="@+id/btn_clear_history" style="@style/Widget.VInstall.TV.Button.Outlined" android:layout_width="wrap_content" android:layout_height="56dp" android:text="@string/history_clear_all" />
+                            <com.google.android.material.button.MaterialButton android:id="@+id/btn_view_history" style="@style/Widget.VInstall.TV.Button" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="10dp" android:text="@string/history_view" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_margin="8dp" android:layout_weight="1" app:cardBackgroundColor="@color/tv_card_background" app:cardCornerRadius="14dp" app:strokeColor="@color/tv_card_stroke" app:strokeWidth="2dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/settings_section_crash_reports" android:textAppearance="@style/TextAppearance.Material3.TitleLarge" />
+                        <TextView android:id="@+id/text_crash_log_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textAppearance="@style/TextAppearance.Material3.BodyMedium" android:textColor="@color/tv_on_surface_variant" />
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="end" android:orientation="horizontal">
+                            <com.google.android.material.button.MaterialButton android:id="@+id/btn_clear_crash_log" style="@style/Widget.VInstall.TV.Button.Outlined" android:layout_width="wrap_content" android:layout_height="56dp" android:text="@string/crash_log_clear" />
+                            <com.google.android.material.button.MaterialButton android:id="@+id/btn_view_crash_log" style="@style/Widget.VInstall.TV.Button" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="10dp" android:text="@string/crash_log_view" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/layout_theme"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:layout_margin="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardBackgroundColor="@color/tv_card_background"
+                app:cardCornerRadius="14dp"
+                app:strokeColor="@color/tv_card_stroke"
+                app:strokeWidth="2dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center_vertical" android:orientation="horizontal" android:paddingHorizontal="20dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/settings_theme" android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                    <TextView android:id="@+id/text_current_theme" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="16dp" android:textAppearance="@style/TextAppearance.Material3.BodyLarge" android:textColor="@color/tv_on_surface_variant" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/nav_right_arrow" android:textSize="22sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

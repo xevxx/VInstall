@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="5dp"
+    android:background="@drawable/tv_focusable_background"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:minHeight="72dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="18dp"
+    android:paddingVertical="10dp">
+
+    <TextView
+        android:id="@+id/type_badge"
+        android:layout_width="96dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+        android:textColor="@color/tv_on_surface_variant" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="18dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/name_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="middle"
+            android:singleLine="true"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="@color/tv_on_surface" />
+
+        <TextView
+            android:id="@+id/detail_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="@color/tv_on_surface_variant" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/selected_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="18dp"
+        android:background="@color/tv_accent"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="7dp"
+        android:text="@string/tv_picker_selected_badge"
+        android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+        android:textColor="@color/tv_on_accent"
+        android:visibility="gone" />
+</LinearLayout>

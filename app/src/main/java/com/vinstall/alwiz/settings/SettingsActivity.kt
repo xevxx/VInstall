@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.MenuItem
+import android.view.View
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
@@ -19,6 +20,8 @@ import com.vinstall.alwiz.databinding.ActivitySettingsBinding
 import com.vinstall.alwiz.shizuku.ShizukuHelper
 import com.vinstall.alwiz.util.CrashHandler
 import com.vinstall.alwiz.util.DebugLog
+import com.vinstall.alwiz.util.DeviceProfile
+import com.vinstall.alwiz.util.TvFocus
 import com.vinstall.alwiz.settings.DialogHelper
 import com.vinstall.alwiz.root.RootHelper
 import com.vinstall.alwiz.history.InstallHistoryActivity
@@ -61,6 +64,7 @@ class SettingsActivity : AppCompatActivity() {
 
         loadCurrentSettings()
         setupListeners()
+        setupTvRemoteUi(savedInstanceState)
     }
 
     override fun onResume() {
@@ -259,6 +263,33 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupTvRemoteUi(savedInstanceState: Bundle?) {
+        if (!DeviceProfile.isTv(this)) return
+        TvFocus.installFocusableChildren(binding.root)
+
+        binding.root.findViewWithTag<View>("settings_debug_row")?.setOnClickListener {
+            binding.switchDebugWindow.isChecked = !binding.switchDebugWindow.isChecked
+        }
+        binding.root.findViewWithTag<View>("settings_clear_cache_row")?.setOnClickListener {
+            binding.switchClearCache.isChecked = !binding.switchClearCache.isChecked
+        }
+        binding.root.findViewWithTag<View>("settings_confirm_row")?.setOnClickListener {
+            binding.switchConfirmInstall.isChecked = !binding.switchConfirmInstall.isChecked
+        }
+
+        val restoredId = savedInstanceState?.getInt(STATE_FOCUSED_VIEW, View.NO_ID) ?: View.NO_ID
+        binding.root.post {
+            val restored = restoredId.takeIf { it != View.NO_ID }?.let { findViewById<View>(it) }
+            val checkedMode = findViewById<View>(binding.radioGroupMode.checkedRadioButtonId)
+            (restored?.takeIf { it.isShown && it.isEnabled } ?: checkedMode)?.requestFocus()
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (DeviceProfile.isTv(this)) outState.putInt(STATE_FOCUSED_VIEW, currentFocus?.id ?: View.NO_ID)
+    }
+
     private fun showCrashLogDialog(log: String) {
         val tv = TextView(this).apply {
             text = log
@@ -290,7 +321,7 @@ class SettingsActivity : AppCompatActivity() {
         val current = AppSettings.getDialogStyle(this)
         val idx = keys.indexOf(current).coerceAtLeast(0)
 
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(getString(R.string.choose_dialog_style))
             .setSingleChoiceItems(styles, idx) { dialog, which ->
                 AppSettings.setDialogStyle(this, keys[which])
@@ -298,7 +329,8 @@ class SettingsActivity : AppCompatActivity() {
                 dialog.dismiss()
             }
             .setNegativeButton(getString(R.string.cancel), null)
-            .show()
+            .create()
+        focusChoiceDialog(dialog, idx)
     }
 
     private fun showThemeDialog() {
@@ -311,7 +343,7 @@ class SettingsActivity : AppCompatActivity() {
         val current = AppSettings.getTheme(this)
         val idx = keys.indexOf(current).coerceAtLeast(0)
 
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(getString(R.string.choose_theme))
             .setSingleChoiceItems(themes, idx) { dialog, which ->
                 AppSettings.setTheme(this, keys[which])
@@ -320,7 +352,19 @@ class SettingsActivity : AppCompatActivity() {
                 dialog.dismiss()
             }
             .setNegativeButton(getString(R.string.cancel), null)
-            .show()
+            .create()
+        focusChoiceDialog(dialog, idx)
+    }
+
+    private fun focusChoiceDialog(dialog: AlertDialog, checkedIndex: Int) {
+        dialog.setOnShowListener {
+            dialog.listView?.apply {
+                setItemChecked(checkedIndex, true)
+                setSelection(checkedIndex)
+                requestFocus()
+            }
+        }
+        dialog.show()
     }
 
     private fun applyTheme(theme: String) {
@@ -337,5 +381,9 @@ class SettingsActivity : AppCompatActivity() {
         Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener)
         Shizuku.removeBinderDeadListener(shizukuBinderDeadListener)
         ShizukuHelper.removePermissionListener(shizukuPermissionListener)
+    }
+
+    companion object {
+        private const val STATE_FOCUSED_VIEW = "settings_focused_view"
     }
 }
