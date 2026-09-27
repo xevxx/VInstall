@@ -14,6 +14,18 @@ android {
         targetSdk 36
         versionCode 5
         versionName "0.4.4"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    flavorDimensions "device"
+    productFlavors {
+        phone {
+            dimension "device"
+        }
+        tv {
+            dimension "device"
+            applicationIdSuffix ".tv"
+        }
     }
 
     signingConfigs {
@@ -52,6 +64,10 @@ android {
         viewBinding true
     }
 
+    testOptions {
+        unitTests.includeAndroidResources = true
+    }
+
     compileOptions {
         coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_17
@@ -60,6 +76,16 @@ android {
 
     kotlinOptions {
         jvmTarget = '17'
+    }
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        if (variant.name == "tvRelease") {
+            variant.outputs.each { output ->
+                output.outputFileName.set("VInstall-TV-${output.versionName.get()}.apk")
+            }
+        }
     }
 }
 
@@ -77,6 +103,14 @@ dependencies {
     implementation 'androidx.fragment:fragment-ktx:1.8.8'
     implementation 'com.google.code.gson:gson:2.11.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'androidx.test:core-ktx:1.6.1'
+    testImplementation 'org.robolectric:robolectric:4.14.1'
+    androidTestImplementation 'androidx.test:core-ktx:1.6.1'
+    androidTestImplementation 'androidx.test.ext:junit-ktx:1.2.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
 
     def shizuku_version = '13.1.5'
     implementation "dev.rikka.shizuku:api:$shizuku_version"

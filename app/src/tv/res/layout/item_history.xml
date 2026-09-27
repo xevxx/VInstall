@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="6dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:minHeight="88dp"
+    app:cardCornerRadius="14dp"
+    app:strokeColor="@color/tv_card_stroke"
+    app:strokeWidth="1dp">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal" android:padding="16dp">
+        <View android:id="@+id/status_indicator" android:layout_width="5dp" android:layout_height="56dp" android:layout_marginEnd="16dp" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                <TextView android:id="@+id/text_app_label" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:maxLines="1" android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                <TextView android:id="@+id/text_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.LabelLarge" />
+            </LinearLayout>
+            <TextView android:id="@+id/text_package_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1" android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                <TextView android:id="@+id/text_version_format" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+                <TextView android:id="@+id/text_date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+            </LinearLayout>
+        </LinearLayout>
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_delete" style="@style/Widget.Material3.Button.IconButton" android:layout_width="56dp" android:layout_height="56dp" android:contentDescription="@string/queue_remove" android:focusable="true" app:icon="@android:drawable/ic_menu_delete" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

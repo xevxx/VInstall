@@ -7,6 +7,7 @@ import com.google.android.material.color.MaterialColors
 import com.vinstall.alwiz.databinding.ItemHistoryBinding
 import com.vinstall.alwiz.model.HistoryStatus
 import com.vinstall.alwiz.model.InstallHistoryEntry
+import com.vinstall.alwiz.util.TvFocus
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -17,14 +18,21 @@ class InstallHistoryAdapter(
     private val onDeleteClick: (InstallHistoryEntry, Int) -> Unit
 ) : RecyclerView.Adapter<InstallHistoryAdapter.ViewHolder>() {
 
+    init {
+        setHasStableIds(true)
+    }
+
     private val dateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
 
     inner class ViewHolder(val binding: ItemHistoryBinding) : RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemHistoryBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        TvFocus.install(binding.root)
         return ViewHolder(binding)
     }
+
+    override fun getItemId(position: Int): Long = TvFocus.stableId(entries[position].id)
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val entry = entries[position]
@@ -64,5 +72,6 @@ class InstallHistoryAdapter(
     fun removeAt(position: Int) {
         entries.removeAt(position)
         notifyItemRemoved(position)
+        notifyItemRangeChanged(position, entries.size - position)
     }
 }

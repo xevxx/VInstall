@@ -1,0 +1,8 @@
+<resources>
+    <dimen name="tv_safe_horizontal">48dp</dimen>
+    <dimen name="tv_safe_vertical">28dp</dimen>
+    <dimen name="tv_focus_stroke">3dp</dimen>
+    <dimen name="tv_resting_stroke">1dp</dimen>
+    <dimen name="tv_focus_elevation">10dp</dimen>
+    <dimen name="tv_resting_elevation">1dp</dimen>
+</resources>

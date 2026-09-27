@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/tv_safe_horizontal"
+    android:paddingVertical="@dimen/tv_safe_vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        app:title="@string/app_name"
+        app:titleTextAppearance="@style/TextAppearance.Material3.HeadlineSmall" />
+
+    <LinearLayout
+        android:id="@+id/layout_toolbar_actions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingVertical="4dp">
+        <View android:id="@+id/install_mode_dot" android:layout_width="10dp" android:layout_height="10dp" android:background="@drawable/dot_active" />
+        <TextView android:id="@+id/text_install_mode_status" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_debug" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/debug_window" android:visibility="gone" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_app_manager" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/btn_app_manager" android:visibility="gone" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_backup" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/btn_backup_manager" android:visibility="gone" />
+    </LinearLayout>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_file_info"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginVertical="10dp"
+        android:layout_weight="1"
+        app:cardCornerRadius="18dp"
+        app:strokeColor="@color/tv_card_stroke"
+        app:strokeWidth="1dp">
+
+        <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent" android:padding="22dp">
+            <LinearLayout
+                android:id="@+id/layout_empty_state"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/no_file_selected" android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:gravity="center" android:text="@string/tap_to_select" android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layout_queue_info"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:visibility="gone">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                    <TextView android:id="@+id/text_queue_label" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                    <TextView android:id="@+id/text_queue_hint" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/queue_remote_hint" android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+                </LinearLayout>
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/recycler_queue" android:layout_width="match_parent" android:layout_height="0dp" android:layout_marginTop="8dp" android:layout_weight="1" android:clipToPadding="false" android:descendantFocusability="afterDescendants" android:paddingHorizontal="4dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layout_file_info"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="vertical"
+                android:visibility="gone">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                    <ImageView android:id="@+id/image_app_icon" android:layout_width="76dp" android:layout_height="76dp" android:contentDescription="@string/app_icon_desc" android:scaleType="fitCenter" android:visibility="gone" />
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="18dp" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:id="@+id/text_file_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="2" android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall" />
+                        <TextView android:id="@+id/text_package_meta" android:layout_width="match_parent" android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.BodyLarge" android:visibility="gone" />
+                        <TextView android:id="@+id/text_file_path" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="middle" android:singleLine="true" android:textAppearance="@style/TextAppearance.Material3.BodyMedium" android:visibility="gone" />
+                    </LinearLayout>
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:orientation="horizontal">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/format_label" />
+                        <TextView android:id="@+id/text_format" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/size_label" />
+                        <TextView android:id="@+id/text_size" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                    </LinearLayout>
+                </LinearLayout>
+                <LinearLayout android:id="@+id/layout_hash" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:orientation="vertical" android:visibility="gone">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/label_sha256" />
+                    <TextView android:id="@+id/text_hash" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:fontFamily="monospace" android:maxLines="2" android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                </LinearLayout>
+            </LinearLayout>
+        </FrameLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/progress_bar" android:layout_width="match_parent" android:layout_height="wrap_content" android:indeterminate="true" android:visibility="gone" />
+    <TextView android:id="@+id/text_batch_progress" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textAppearance="@style/TextAppearance.Material3.LabelLarge" android:visibility="gone" />
+    <TextView android:id="@+id/text_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textAppearance="@style/TextAppearance.Material3.BodyLarge" android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/layout_buttons"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:orientation="horizontal"
+        android:paddingTop="10dp">
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_select_splits" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="56dp" android:nextFocusRight="@id/btn_cancel" android:text="@string/select_splits" android:visibility="gone" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_cancel" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="10dp" android:nextFocusRight="@id/btn_select" android:text="@string/cancel" android:visibility="gone" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_select" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="10dp" android:nextFocusRight="@id/btn_install" android:text="@string/select_file" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_install" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="12dp" android:enabled="false" android:nextFocusLeft="@id/btn_select" android:text="@string/install" />
+    </LinearLayout>
+</LinearLayout>

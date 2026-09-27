@@ -39,7 +39,13 @@ Browse all installed user apps with the ability to:
 
 ### Backup/Export
 
-Export any installed user app as an `.apkv` archive directly from the App Manager or the dedicated Backup screen. Backups are saved to `Documents/VInstall/Backups/` on external storage. Optional password-based encryption is supported when exporting.
+Export any installed user app as an `.apkv` archive directly from the App Manager or the dedicated Backup screen. Exports are created in private app storage and can then be saved with Android's document picker. Optional password-based encryption is supported when exporting.
+
+### Android TV
+
+The `tv` flavor is a separately installable, five-way-remote-friendly build with a Leanback dashboard. Its Receive screen starts a lifecycle-bound LAN server with a six-digit pairing code for browser uploads and authenticated APKV downloads. Received packages are always reviewed and explicitly installed on the TV.
+
+XAPK expansion files are accepted only when Root or an active, granted Shizuku installation mode is selected. VInstall validates the APK package name and writes only `.obb` files beneath that package's protected OBB directory.
 
 ### Settings
 
@@ -56,7 +62,7 @@ Export any installed user app as an `.apkv` archive directly from the App Manage
 
 - Android 5.0 (API 21) or higher
 - "Install unknown apps" permission granted for this app
-- "All Files Access" permission required for XAPK packages that include OBB data and for writing backups to external storage (Android 11+)
+- Root or active Shizuku access is required for XAPK packages that contain OBB data
 - Root access required when using Root mode
 - [Shizuku](https://shizuku.rikka.app/) installed and running when using Shizuku mode
 
@@ -65,7 +71,8 @@ Export any installed user app as an `.apkv` archive directly from the App Manage
 ### Debug
 
 ```bash
-./gradlew assembleDebug
+./gradlew assemblePhoneDebug
+./gradlew assembleTvDebug
 ```
 
 ### Release
@@ -104,7 +111,8 @@ KEY_PASSWORD=your_key_password
 Then run:
 
 ```bash
-./gradlew assembleRelease
+./gradlew assemblePhoneRelease
+./gradlew assembleTvRelease
 ```
 
 ## Gradle Wrapper

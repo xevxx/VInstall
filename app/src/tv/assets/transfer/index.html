@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VInstall TV transfer</title>
+  <style>
+    :root{color-scheme:light dark;font-family:system-ui,sans-serif}body{max-width:720px;margin:0 auto;padding:32px 20px;background:#11131a;color:#f3f3fa}
+    .card{background:#20232d;border:1px solid #444854;border-radius:16px;padding:24px;margin:18px 0}h1{margin-bottom:4px}h2{font-size:1.15rem}
+    input,button{box-sizing:border-box;border-radius:10px;padding:13px;font:inherit}input[type=text]{width:100%;font-size:1.4rem;letter-spacing:.2em;background:#11131a;color:#fff;border:1px solid #777}
+    input[type=file]{display:block;margin:18px 0;width:100%}button,.download{background:#8ab4ff;color:#071a3b;border:0;font-weight:700;cursor:pointer;text-decoration:none}
+    button{width:100%}.download{display:flex;justify-content:space-between;padding:14px;margin:10px 0;border-radius:10px}.muted,small{color:#bfc4d0}#message{min-height:1.4em;color:#ffb4ab}
+  </style>
+</head>
+<body>
+  <h1>VInstall TV</h1><p class="muted">Secure local package transfer</p>
+  <section class="card" style="display:{{PAIRING_DISPLAY}}" id="pairing">
+    <h2>Pair with your TV</h2><p>Enter the six-digit code shown on the TV.</p>
+    <form id="pair-form"><input id="code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required><p><button>Pair</button></p></form>
+  </section>
+  <main style="display:{{TRANSFER_DISPLAY}}" id="transfer">
+    <section class="card"><h2>Send packages</h2><p class="muted">APK, APKM, APKS, APKV, XAPK, and ZIP are accepted. Installation always requires confirmation on the TV.</p>
+      <form id="upload-form"><input id="files" name="files" type="file" accept=".apk,.apkm,.apks,.apkv,.xapk,.zip" multiple required><button>Upload to TV</button></form>
+      <progress id="progress" value="0" max="100" hidden style="width:100%;margin-top:18px"></progress>
+    </section>
+    <section class="card"><h2>Exports ready to download</h2>{{EXPORTS}}</section>
+  </main>
+  <p id="message" role="status"></p>
+  <script>
+    const message=document.querySelector('#message');
+    document.querySelector('#pair-form')?.addEventListener('submit',async e=>{e.preventDefault();message.textContent='Pairing…';const response=await fetch('/api/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:document.querySelector('#code').value})});if(response.ok)location.reload();else{const data=await response.json().catch(()=>({}));message.textContent=data.error||'Pairing failed';}});
+    document.querySelector('#upload-form')?.addEventListener('submit',e=>{e.preventDefault();const files=document.querySelector('#files').files;if(!files.length)return;const data=new FormData();for(const file of files)data.append('files',file,file.name);const request=new XMLHttpRequest();const progress=document.querySelector('#progress');progress.hidden=false;message.textContent='Uploading…';request.upload.onprogress=x=>{if(x.lengthComputable)progress.value=x.loaded/x.total*100};request.onload=()=>{if(request.status===201){message.textContent='Upload complete. Review it on the TV.';setTimeout(()=>location.reload(),800)}else{try{message.textContent=JSON.parse(request.responseText).error}catch(_){message.textContent='Upload failed'}}};request.onerror=()=>message.textContent='Network connection lost';request.open('POST','/api/uploads');request.send(data);});
+  </script>
+</body>
+</html>

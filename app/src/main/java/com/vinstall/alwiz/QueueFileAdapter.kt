@@ -12,6 +12,8 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.color.MaterialColors
+import com.vinstall.alwiz.util.DeviceProfile
+import com.vinstall.alwiz.util.TvFocus
 import java.util.Collections
 
 data class QueueItem(
@@ -35,6 +37,12 @@ class QueueFileAdapter(
     private val onItemClick: ((QueueItem) -> Unit)? = null
 ) : RecyclerView.Adapter<QueueFileAdapter.ViewHolder>() {
 
+    private val removedUris = mutableSetOf<Uri>()
+
+    init {
+        setHasStableIds(true)
+    }
+
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val textNumber: TextView = itemView.findViewById(R.id.text_queue_number)
         val imageIcon: ImageView = itemView.findViewById(R.id.image_queue_icon)
@@ -47,8 +55,11 @@ class QueueFileAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_queue_file, parent, false)
+        TvFocus.install(view)
         return ViewHolder(view)
     }
+
+    override fun getItemId(position: Int): Long = TvFocus.stableId(items[position].uri.toString())
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = items[position]
@@ -97,9 +108,26 @@ class QueueFileAdapter(
             }
         }
 
-        holder.iconDrag.setOnTouchListener { _, event ->
-            if (event.actionMasked == MotionEvent.ACTION_DOWN) onStartDrag(holder)
-            false
+        if (DeviceProfile.isTv(holder.itemView.context)) {
+            holder.iconDrag.isVisible = false
+            holder.iconDrag.setOnTouchListener(null)
+            holder.itemView.findViewWithTag<View>("queue_move_up")?.apply {
+                isEnabled = position > 0
+                setOnClickListener { moveFromHolder(holder, -1, it) }
+            }
+            holder.itemView.findViewWithTag<View>("queue_move_down")?.apply {
+                isEnabled = position < items.lastIndex
+                setOnClickListener { moveFromHolder(holder, 1, it) }
+            }
+            holder.itemView.findViewWithTag<View>("queue_remove")?.setOnClickListener {
+                removeFromHolder(holder)
+            }
+        } else {
+            holder.iconDrag.isVisible = true
+            holder.iconDrag.setOnTouchListener { _, event ->
+                if (event.actionMasked == MotionEvent.ACTION_DOWN) onStartDrag(holder)
+                false
+            }
         }
     }
 
@@ -122,7 +150,13 @@ class QueueFileAdapter(
 
     fun setItems(newItems: List<QueueItem>) {
         items.clear()
-        items.addAll(newItems)
+        items.addAll(newItems.filterNot { it.uri in removedUris })
+        notifyDataSetChanged()
+    }
+
+    fun resetForNewQueue() {
+        removedUris.clear()
+        items.clear()
         notifyDataSetChanged()
     }
 
@@ -132,6 +166,23 @@ class QueueFileAdapter(
             items[idx] = updated
             notifyItemChanged(idx)
         }
+    }
+
+    private fun moveFromHolder(holder: ViewHolder, offset: Int, focusedControl: View) {
+        val from = holder.bindingAdapterPosition
+        val to = from + offset
+        if (from == RecyclerView.NO_POSITION || to !in items.indices) return
+        onItemMoved(from, to)
+        focusedControl.post { focusedControl.requestFocus() }
+    }
+
+    private fun removeFromHolder(holder: ViewHolder) {
+        val position = holder.bindingAdapterPosition
+        if (position == RecyclerView.NO_POSITION) return
+        removedUris += items[position].uri
+        items.removeAt(position)
+        notifyItemRemoved(position)
+        notifyItemRangeChanged(position, items.size - position)
     }
 
     private fun formatSize(bytes: Long): String = when {

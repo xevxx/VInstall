@@ -51,11 +51,18 @@ object ApkvExporter {
         password: String? = null,
         onStep: (String) -> Unit
     ): Result<File> = withContext(Dispatchers.IO) {
+        var partialOutput: File? = null
         try {
             outputDir.mkdirs()
             val safeName = appInfo.packageName.replace(Regex("[^a-zA-Z0-9._]"), "_")
             val safeVersion = appInfo.versionName.replace(Regex("[^a-zA-Z0-9._]"), "_").take(32)
-            val outFile = File(outputDir, "${safeName}_${safeVersion}.apkv")
+            val baseName = "${safeName}_${safeVersion}"
+            var outFile = File(outputDir, "$baseName.apkv")
+            if (outFile.exists()) {
+                outFile = File(outputDir, "${baseName}_${System.currentTimeMillis()}.apkv")
+            }
+            val workingFile = File(outputDir, ".${outFile.name}.${System.nanoTime()}.partial")
+            partialOutput = workingFile
 
             onStep("Collecting APK files...")
             DebugLog.d(TAG, "Export start: ${appInfo.packageName} encrypted=${password != null}")
@@ -97,15 +104,21 @@ object ApkvExporter {
 
             if (encrypted) {
                 onStep("Encrypting package...")
-                writeEncrypted(apkFiles, manifest, appInfo, outFile, password!!, iconBytes, exportedAt, onStep)
+                writeEncrypted(apkFiles, manifest, appInfo, workingFile, password!!, iconBytes, exportedAt, onStep)
             } else {
                 onStep("Archiving package...")
-                writePlain(apkFiles, manifest, outFile, iconBytes, onStep)
+                writePlain(apkFiles, manifest, workingFile, iconBytes, onStep)
             }
+
+            if (!workingFile.renameTo(outFile)) {
+                throw IllegalStateException("Could not finalize export")
+            }
+            partialOutput = null
 
             DebugLog.i(TAG, "Export complete: ${outFile.absolutePath}")
             Result.success(outFile)
         } catch (e: Exception) {
+            partialOutput?.delete()
             DebugLog.e(TAG, "Export failed: ${e.message}")
             Result.failure(e)
         }

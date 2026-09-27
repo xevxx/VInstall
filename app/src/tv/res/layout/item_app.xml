@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="48dp"
+    android:layout_marginVertical="6dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:minHeight="96dp"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="1dp"
+    app:strokeColor="@color/tv_card_stroke"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/image_icon"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:importantForAccessibility="no"
+            android:scaleType="fitCenter" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="18dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView android:id="@+id/text_app_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1" android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+            <TextView android:id="@+id/text_package_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1" android:textAppearance="@style/TextAppearance.Material3.BodyMedium" android:textColor="?attr/colorOnSurfaceVariant" />
+            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal">
+                <TextView android:id="@+id/text_version" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/separator_dot" />
+                <TextView android:id="@+id/text_size" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <com.google.android.material.chip.Chip android:id="@+id/chip_split" style="@style/Widget.Material3.Chip.Assist" android:layout_width="wrap_content" android:layout_height="wrap_content" android:focusable="false" android:text="@string/tag_split" android:visibility="gone" />
+        <com.google.android.material.chip.Chip android:id="@+id/chip_system" style="@style/Widget.Material3.Chip.Assist" android:layout_width="wrap_content" android:layout_height="wrap_content" android:focusable="false" android:text="@string/tag_system" android:visibility="gone" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

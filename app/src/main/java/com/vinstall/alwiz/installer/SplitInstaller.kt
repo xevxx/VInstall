@@ -40,7 +40,8 @@ object SplitInstaller {
         context: Context,
         apkFiles: List<File>,
         selectedSplits: List<String>? = null,
-        onProgress: ((Float) -> Unit)? = null
+        onProgress: ((Float) -> Unit)? = null,
+        allowSessionFallback: Boolean = true
     ): Result<Unit> = withContext(Dispatchers.IO) {
         val filesToInstall = if (selectedSplits != null) {
             apkFiles.filter { f ->
@@ -62,6 +63,8 @@ object SplitInstaller {
             InstallMode.ROOT -> {
                 if (RootHelper.isRooted()) {
                     installViaRoot(filesToInstall, onProgress)
+                } else if (!allowSessionFallback) {
+                    Result.failure(Exception("Root installation is selected, but root access is not available."))
                 } else {
                     DebugLog.e("SplitInstaller", "ROOT mode selected but device is not rooted, falling back to session")
                     installViaSession(context, filesToInstall, onProgress)
@@ -70,27 +73,34 @@ object SplitInstaller {
             InstallMode.SHIZUKU -> {
                 val liveGranted = ShizukuHelper.isAvailable() && ShizukuHelper.isGranted()
                 val storedGranted = ShizukuHelper.isAvailable() && AppSettings.isShizukuPermissionGranted(context)
+                val canUseShizuku = liveGranted || (allowSessionFallback && storedGranted)
 
-                if (liveGranted || storedGranted) {
+                if (canUseShizuku) {
                     if (ShizukuHelper.isNewProcessAvailable()) {
                         val result = installViaShizuku(context, filesToInstall, onProgress)
-                        if (result.isFailure) {
+                        if (result.isFailure && allowSessionFallback) {
                             AppSettings.setShizukuPermissionGranted(context, false)
                             DebugLog.e("SplitInstaller", "Shizuku install failed, falling back to session")
                             installViaSession(context, filesToInstall, onProgress)
                         } else {
                             result
                         }
-                    } else {
+                    } else if (allowSessionFallback) {
                         DebugLog.e("SplitInstaller", "Shizuku newProcess not available, falling back to session")
                         installViaSession(context, filesToInstall, onProgress)
-                    }
-                } else {
+                    } else Result.failure(Exception("Shizuku installation is selected, but elevated process access is unavailable."))
+                } else if (allowSessionFallback) {
                     DebugLog.e("SplitInstaller", "SHIZUKU mode selected but Shizuku is not active/permitted, falling back to session")
                     installViaSession(context, filesToInstall, onProgress)
+                } else {
+                    Result.failure(Exception("Shizuku installation is selected, but Shizuku is not active or permitted."))
                 }
             }
-            InstallMode.NORMAL -> installViaSession(context, filesToInstall, onProgress)
+            InstallMode.NORMAL -> if (allowSessionFallback) {
+                installViaSession(context, filesToInstall, onProgress)
+            } else {
+                Result.failure(Exception("This package requires Root or active Shizuku installation mode."))
+            }
         }
     }
 

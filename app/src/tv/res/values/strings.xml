@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">VInstall TV</string>
+    <string name="tv_home_title">VInstall</string>
+    <string name="tv_home_subtitle">Install and manage packages on this TV</string>
+    <string name="tv_install_title">Install packages</string>
+    <string name="tv_install_desc">Choose APK, APKM, APKS, APKV, XAPK, or ZIP files</string>
+    <string name="tv_receive_title">Receive from phone</string>
+    <string name="tv_receive_desc">Upload packages securely from a browser</string>
+    <string name="tv_apps_title">Apps</string>
+    <string name="tv_apps_desc">Open, inspect, export, or uninstall installed apps</string>
+    <string name="tv_export_title">Export</string>
+    <string name="tv_export_desc">Create APKV backups and download them</string>
+    <string name="tv_history_title">History</string>
+    <string name="tv_history_desc">Review previous installation results</string>
+    <string name="tv_settings_title">Settings</string>
+    <string name="tv_settings_desc">Installation mode, dialogs, and appearance</string>
+    <string name="tv_debug_title">Debug</string>
+    <string name="tv_debug_desc">Inspect diagnostic logs</string>
+</resources>

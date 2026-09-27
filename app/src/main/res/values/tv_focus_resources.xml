@@ -1,0 +1,9 @@
+<resources>
+    <!-- Referenced by shared adapter code; only applied when is_tv is true. -->
+    <color name="tv_focus_ring">#1C6EF2</color>
+    <color name="tv_card_stroke">#E1E2EC</color>
+    <dimen name="tv_focus_stroke">3dp</dimen>
+    <dimen name="tv_resting_stroke">1dp</dimen>
+    <dimen name="tv_focus_elevation">10dp</dimen>
+    <dimen name="tv_resting_elevation">1dp</dimen>
+</resources>

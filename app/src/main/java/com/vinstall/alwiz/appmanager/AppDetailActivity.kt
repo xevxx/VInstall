@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.provider.Settings
 import android.view.MenuItem
 import android.view.View
@@ -27,8 +26,10 @@ import com.vinstall.alwiz.settings.DialogHelper
 import com.vinstall.alwiz.backup.BackupManager
 import com.vinstall.alwiz.backup.BackupState
 import com.vinstall.alwiz.backup.BackupViewModel
+import com.vinstall.alwiz.backup.BackupActivity
 import com.vinstall.alwiz.databinding.ActivityAppDetailBinding
 import com.vinstall.alwiz.model.AppInfo
+import com.vinstall.alwiz.transfer.ExportEntry
 import com.vinstall.alwiz.settings.AppSettings
 import com.vinstall.alwiz.settings.InstallMode
 import com.vinstall.alwiz.util.DebugLog
@@ -52,6 +53,8 @@ class AppDetailActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAppDetailBinding
     private val backupViewModel: BackupViewModel by viewModels()
     private var currentApp: AppInfo? = null
+    private var pendingSave: ExportEntry? = null
+    private var shownExportId: String? = null
 
     private val uninstallLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -60,6 +63,28 @@ class AppDetailActivity : AppCompatActivity() {
             DebugLog.i("AppDetail", "Uninstall successful (normal mode): ${currentApp?.packageName}")
             Toast.makeText(this, getString(R.string.uninstall_success), Toast.LENGTH_SHORT).show()
             finish()
+        }
+    }
+
+    private val saveExportLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { destination ->
+        val export = pendingSave
+        pendingSave = null
+        if (destination == null || export == null) return@registerForActivityResult
+        lifecycleScope.launch {
+            val error = withContext(Dispatchers.IO) {
+                runCatching {
+                    contentResolver.openOutputStream(destination, "w")?.use { output ->
+                        export.file.inputStream().use { input -> input.copyTo(output) }
+                    } ?: error("Could not open the selected destination")
+                }.exceptionOrNull()
+            }
+            Toast.makeText(
+                this@AppDetailActivity,
+                error?.message ?: getString(R.string.export_saved),
+                if (error == null) Toast.LENGTH_SHORT else Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -106,7 +131,11 @@ class AppDetailActivity : AppCompatActivity() {
                     is BackupState.Done -> {
                         binding.progressBackup.visibility = View.GONE
                         binding.textBackupStatus.visibility = View.VISIBLE
-                        binding.textBackupStatus.text = getString(R.string.backup_success, state.path)
+                        binding.textBackupStatus.text = getString(R.string.backup_success, state.export.displayName)
+                        if (shownExportId != state.export.id) {
+                            shownExportId = state.export.id
+                            showExportResult(state.export)
+                        }
                     }
                     is BackupState.Error -> {
                         binding.progressBackup.visibility = View.GONE
@@ -196,14 +225,35 @@ class AppDetailActivity : AppCompatActivity() {
                 val password = if (checkboxEncrypt.isChecked) {
                     editPassword.text?.toString()?.takeIf { it.isNotBlank() }
                 } else null
-                val outputDir = File(
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),
-                    "VInstall/Backups"
-                )
-                backupViewModel.backup(app, outputDir, password)
+                backupViewModel.backup(app, password)
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
+    }
+
+    private fun showExportResult(export: ExportEntry) {
+        val receiveIntent = Intent(BackupActivity.ACTION_OPEN_RECEIVE).apply {
+            setPackage(packageName)
+            putExtra(BackupActivity.EXTRA_EXPORT_ID, export.id)
+        }
+        val builder = AlertDialog.Builder(this)
+            .setTitle(R.string.export_ready)
+            .setMessage(getString(R.string.export_ready_message, export.displayName))
+            .setPositiveButton(R.string.save_as) { _, _ ->
+                pendingSave = export
+                saveExportLauncher.launch(export.displayName)
+            }
+            .setNegativeButton(R.string.delete_export) { _, _ ->
+                if (backupViewModel.deleteExport(export)) {
+                    Toast.makeText(this, R.string.export_deleted, Toast.LENGTH_SHORT).show()
+                }
+            }
+        if (receiveIntent.resolveActivity(packageManager) != null) {
+            builder.setNeutralButton(R.string.download_from_browser) { _, _ ->
+                startActivity(receiveIntent)
+            }
+        }
+        builder.show()
     }
 
     private fun showUninstallDialog(app: AppInfo) {

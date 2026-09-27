@@ -39,10 +39,16 @@ import com.vinstall.alwiz.util.CrashHandler
 import com.vinstall.alwiz.util.DebugLog
 import com.vinstall.alwiz.util.FileUtil
 import com.vinstall.alwiz.util.NotificationHelper
+import com.vinstall.alwiz.util.DeviceProfile
 import kotlinx.coroutines.launch
 import rikka.shizuku.Shizuku
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        /** Read-only FileProvider URIs accepted from the TV receive flow. */
+        const val EXTRA_PACKAGE_URIS = "com.vinstall.alwiz.EXTRA_PACKAGE_URIS"
+    }
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: MainViewModel by viewModels()
@@ -101,6 +107,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         setSupportActionBar(binding.toolbar)
+        if (DeviceProfile.isTv(this)) {
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        }
         setupQueueRecycler()
 
         Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener)
@@ -175,9 +184,7 @@ class MainActivity : AppCompatActivity() {
         updateInstallModeStatus()
         DebugLog.i("MainActivity", "Application started")
 
-        intent?.data?.let { uri ->
-            if (savedInstanceState == null) viewModel.onFileSelected(uri)
-        }
+        if (savedInstanceState == null) handlePackageIntent(intent)
     }
 
     private fun setupQueueRecycler() {
@@ -195,6 +202,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun enterQueueMode(uris: List<Uri>) {
         isQueueMode = true
+        queueAdapter.resetForNewQueue()
         binding.textQueueLabel.text = getString(R.string.queue_label, uris.size)
         viewModel.buildQueueItems(uris)
         binding.layoutEmptyState.isVisible = false
@@ -212,7 +220,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleSingleInstallClick() {
-        if (needsStoragePermission()) {
+        if (!DeviceProfile.isTv(this) && needsStoragePermission()) {
             showStoragePermissionDialog()
             return
         }
@@ -249,6 +257,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        if (DeviceProfile.isTv(this)) return false
         menuInflater.inflate(R.menu.main_menu, menu)
         return true
     }
@@ -263,6 +272,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
+            android.R.id.home -> {
+                if (DeviceProfile.isTv(this)) finish()
+                true
+            }
             R.id.action_settings -> {
                 startActivity(Intent(this, SettingsActivity::class.java))
                 true
@@ -454,6 +467,51 @@ class MainActivity : AppCompatActivity() {
                 showPasswordDialog(state)
             }
         }
+        restoreTvFocus(state)
+    }
+
+    private fun restoreTvFocus(state: InstallState) {
+        if (!DeviceProfile.isTv(this)) return
+        binding.root.post {
+            val focused = currentFocus
+            if (focused != null && focused.isShown && focused.isEnabled && focused.isFocusable) return@post
+            val target = when (state) {
+                is InstallState.FileSelected,
+                is InstallState.Error,
+                is InstallState.Cancelled -> binding.btnInstall.takeIf { it.isShown && it.isEnabled }
+                    ?: binding.btnSelect
+                is InstallState.Installing,
+                is InstallState.Analyzing -> binding.btnCancel.takeIf { it.isShown && it.isEnabled }
+                else -> binding.btnSelect.takeIf { it.isShown && it.isEnabled }
+            }
+            target?.requestFocus()
+        }
+    }
+
+    private fun handlePackageIntent(sourceIntent: Intent?) {
+        if (sourceIntent == null) return
+        val received = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            sourceIntent.getParcelableArrayListExtra(EXTRA_PACKAGE_URIS, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            sourceIntent.getParcelableArrayListExtra(EXTRA_PACKAGE_URIS)
+        }.orEmpty()
+
+        when {
+            received.size == 1 -> {
+                exitQueueMode()
+                viewModel.onFileSelected(received.first())
+            }
+            received.size > 1 -> enterQueueMode(received)
+            sourceIntent.data != null -> viewModel.onFileSelected(sourceIntent.data!!)
+        }
+        sourceIntent.removeExtra(EXTRA_PACKAGE_URIS)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handlePackageIntent(intent)
     }
 
     private fun showPasswordDialog(state: InstallState.PasswordRequired) {

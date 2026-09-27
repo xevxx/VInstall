@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="88dp"
+    android:layout_marginVertical="4dp"
+    android:background="@drawable/tv_focusable_background"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/text_queue_number"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:gravity="center"
+        android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
+
+    <ImageView
+        android:id="@+id/image_queue_icon"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_marginStart="10dp"
+        android:contentDescription="@null"
+        android:scaleType="fitCenter" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="14dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/text_queue_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+        <TextView
+            android:id="@+id/text_queue_meta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <TextView
+            android:id="@+id/text_queue_hash"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="monospace"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        style="@style/Widget.Material3.Button.IconButton"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:contentDescription="@string/queue_move_up"
+        android:focusable="true"
+        android:tag="queue_move_up"
+        android:text="↑" />
+
+    <com.google.android.material.button.MaterialButton
+        style="@style/Widget.Material3.Button.IconButton"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:contentDescription="@string/queue_move_down"
+        android:focusable="true"
+        android:tag="queue_move_down"
+        android:text="↓" />
+
+    <com.google.android.material.button.MaterialButton
+        style="@style/Widget.Material3.Button.IconButton"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:contentDescription="@string/queue_remove"
+        android:focusable="true"
+        android:tag="queue_remove"
+        android:text="×" />
+
+    <ImageView
+        android:id="@+id/icon_drag_handle"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:contentDescription="@null"
+        android:visibility="gone" />
+</LinearLayout>

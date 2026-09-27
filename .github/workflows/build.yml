@@ -28,13 +28,13 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assemblePhoneDebug assembleTvDebug test lint lintTvDebug
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/*/debug/*.apk
 
   release:
     runs-on: ubuntu-latest
@@ -65,7 +65,7 @@ jobs:
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/build/release.jks
 
       - name: Build release APK
-        run: ./gradlew assembleRelease
+        run: ./gradlew assemblePhoneRelease assembleTvRelease
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
@@ -75,8 +75,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/release/*.apk
+          files: app/build/outputs/apk/*/release/*.apk
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          

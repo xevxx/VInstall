@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="transfer_title">Receive packages</string>
+    <string name="transfer_instructions">On a phone or computer connected to this network, open the address below and enter the pairing code.</string>
+    <string name="transfer_address_label">Browser address</string>
+    <string name="transfer_code_label">Pairing code</string>
+    <string name="transfer_status_stopped">Transfer server stopped</string>
+    <string name="transfer_status_waiting">Waiting for a browser to pair</string>
+    <string name="transfer_status_paired">Browser paired — ready to receive</string>
+    <string name="transfer_status_uploading">Receiving %1$s (%2$s)</string>
+    <string name="transfer_status_complete">Received %1$d package(s). Review them before installing.</string>
+    <string name="transfer_status_error">Transfer error: %1$s</string>
+    <string name="transfer_no_packages">No received packages yet.</string>
+    <string name="transfer_review_packages">Review packages</string>
+    <string name="transfer_delete_packages">Delete received files</string>
+    <string name="transfer_package_item">%1$s\n%2$s</string>
+    <plurals name="transfer_package_count">
+        <item quantity="one">%d received package</item>
+        <item quantity="other">%d received packages</item>
+    </plurals>
+    <dimen name="transfer_card_radius">12dp</dimen>
+    <dimen name="transfer_card_stroke">2dp</dimen>
+    <dimen name="transfer_card_padding">18dp</dimen>
+    <dimen name="transfer_item_spacing">10dp</dimen>
+</resources>

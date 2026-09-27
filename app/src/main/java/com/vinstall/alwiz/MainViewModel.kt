@@ -20,6 +20,7 @@ import com.vinstall.alwiz.settings.InstallMode
 import com.vinstall.alwiz.util.MetadataReader
 import com.vinstall.alwiz.util.NotificationHelper
 import com.vinstall.alwiz.history.InstallHistoryManager
+import com.vinstall.alwiz.transfer.IncomingPackageRepository
 import com.vinstall.alwiz.model.HistoryStatus
 import com.vinstall.alwiz.model.InstallHistoryEntry
 import kotlinx.coroutines.Dispatchers
@@ -531,6 +532,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             is InstallHelper.Result.Success -> {
                 NotificationHelper.postInstallSuccess(context, packageName, appLabel)
                 recordHistory(context, fileState, HistoryStatus.SUCCESS, "")
+                IncomingPackageRepository(context).deleteByUri(fileState.uri)
                 InstallState.Success(packageName)
             }
             is InstallHelper.Result.Failure -> {

@@ -25,6 +25,13 @@
     <string name="app_detail">App Detail</string>
     <string name="backup">Export</string>
     <string name="backup_success">Export saved: %1$s</string>
+    <string name="export_ready">Export ready</string>
+    <string name="export_ready_message">%1$s is stored privately. Save a copy or download it from the Receive screen.</string>
+    <string name="save_as">Save as</string>
+    <string name="download_from_browser">Download from browser</string>
+    <string name="delete_export">Delete export</string>
+    <string name="export_deleted">Export deleted</string>
+    <string name="export_saved">Export saved</string>
     <string name="backup_failed">Export failed: %1$s</string>
     <string name="backup_app">Export to .apkv</string>
     <string name="uninstall">Uninstall</string>

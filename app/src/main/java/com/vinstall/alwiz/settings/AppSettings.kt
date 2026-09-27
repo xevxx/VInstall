@@ -2,6 +2,7 @@ package com.vinstall.alwiz.settings
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.vinstall.alwiz.util.DeviceProfile
 
 object AppSettings {
 
@@ -63,12 +64,19 @@ object AppSettings {
         prefs(context).edit().putBoolean(KEY_SHIZUKU_PERMISSION_GRANTED, granted).apply()
     }
 
-    fun getDialogStyle(context: Context): DialogStyle =
-        try {
-            DialogStyle.valueOf(prefs(context).getString(KEY_DIALOG_STYLE, DialogStyle.BOTTOM_SHEET.name)!!)
-        } catch (_: Exception) {
+    fun getDialogStyle(context: Context): DialogStyle {
+        val preferences = prefs(context)
+        val defaultStyle = if (DeviceProfile.isTv(context)) {
+            DialogStyle.ALERT_DIALOG
+        } else {
             DialogStyle.BOTTOM_SHEET
         }
+        return try {
+            DialogStyle.valueOf(preferences.getString(KEY_DIALOG_STYLE, defaultStyle.name)!!)
+        } catch (_: Exception) {
+            defaultStyle
+        }
+    }
 
     fun setDialogStyle(context: Context, style: DialogStyle) {
         prefs(context).edit().putString(KEY_DIALOG_STYLE, style.name).apply()

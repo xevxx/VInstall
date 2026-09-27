@@ -8,10 +8,15 @@ import androidx.recyclerview.widget.RecyclerView
 import com.vinstall.alwiz.databinding.ItemAppBinding
 import com.vinstall.alwiz.model.AppInfo
 import com.vinstall.alwiz.util.FileUtil
+import com.vinstall.alwiz.util.TvFocus
 
 class AppListAdapter(
     private val onItemClick: (AppInfo) -> Unit
 ) : ListAdapter<AppInfo, AppListAdapter.ViewHolder>(DIFF) {
+
+    init {
+        setHasStableIds(true)
+    }
 
     companion object {
         private val DIFF = object : DiffUtil.ItemCallback<AppInfo>() {
@@ -44,8 +49,11 @@ class AppListAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemAppBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        TvFocus.install(binding.root)
         return ViewHolder(binding)
     }
+
+    override fun getItemId(position: Int): Long = TvFocus.stableId(getItem(position).packageName)
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.bind(getItem(position))
