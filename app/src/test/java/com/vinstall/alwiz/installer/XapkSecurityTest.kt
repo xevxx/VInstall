@@ -14,7 +14,7 @@ class XapkSecurityTest {
     @Test
     fun obbDestinationAlwaysUsesValidatedPackageDirectory() {
         val root = temporaryFolder.root
-        val destination = XapkInstaller.validatedObbDestination(
+        val destination = XapkObbInstaller.validatedDestination(
             root,
             "com.example.game",
             "../../untrusted/main.1.com.example.game.obb",
@@ -28,31 +28,31 @@ class XapkSecurityTest {
 
     @Test(expected = IllegalArgumentException::class)
     fun nonObbExpansionIsRejected() {
-        XapkInstaller.validatedObbDestination(temporaryFolder.root, "com.example.game", "payload.apk")
+        XapkObbInstaller.validatedDestination(temporaryFolder.root, "com.example.game", "payload.apk")
     }
 
     @Test(expected = IllegalArgumentException::class)
     fun invalidManifestPackageIsRejected() {
-        XapkInstaller.validatedObbDestination(temporaryFolder.root, "../escape", "main.obb")
+        XapkObbInstaller.validatedDestination(temporaryFolder.root, "../escape", "main.obb")
     }
 
     @Test
     fun elevatedModeNeverFallsBackForObbPackages() {
         assertTrue(
-            XapkInstaller.selectElevatedMode(
+            XapkObbInstaller.selectElevatedMode(
                 InstallMode.NORMAL, rootAvailable = true, shizukuAvailable = true,
                 shizukuGranted = true, shizukuProcessAvailable = true,
             ).isFailure,
         )
         assertTrue(
-            XapkInstaller.selectElevatedMode(
+            XapkObbInstaller.selectElevatedMode(
                 InstallMode.ROOT, rootAvailable = false, shizukuAvailable = false,
                 shizukuGranted = false, shizukuProcessAvailable = false,
             ).isFailure,
         )
         assertEquals(
-            XapkInstaller.ElevatedMode.SHIZUKU,
-            XapkInstaller.selectElevatedMode(
+            XapkObbInstaller.ElevatedMode.SHIZUKU,
+            XapkObbInstaller.selectElevatedMode(
                 InstallMode.SHIZUKU, rootAvailable = false, shizukuAvailable = true,
                 shizukuGranted = true, shizukuProcessAvailable = true,
             ).getOrThrow(),

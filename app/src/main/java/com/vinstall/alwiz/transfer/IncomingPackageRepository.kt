@@ -26,30 +26,27 @@ class IncomingPackageRepository(private val context: Context) {
     private val directory = File(context.filesDir, DIRECTORY_NAME).apply { mkdirs() }
     private val gson = Gson()
 
-    @Synchronized
-    fun beginUpload(originalName: String, expectedSize: Long? = null): PendingUpload {
+    fun beginUpload(originalName: String, expectedSize: Long? = null): PendingUpload = synchronized(PROCESS_LOCK) {
         val displayName = sanitizeFileName(originalName)
         if (expectedSize != null) {
             require(expectedSize >= 0) { "Invalid upload size" }
             ensureSpace(expectedSize)
         }
         val id = UUID.randomUUID().toString()
-        return PendingUpload(id, displayName, expectedSize)
+        PendingUpload(id, displayName, expectedSize)
     }
 
-    @Synchronized
-    fun list(): List<IncomingPackageEntry> {
+    fun list(): List<IncomingPackageEntry> = synchronized(PROCESS_LOCK) {
         cleanupOrphans()
-        return directory.listFiles { file -> file.extension.equals(METADATA_EXTENSION, true) }
+        directory.listFiles { file -> file.extension.equals(METADATA_EXTENSION, true) }
             .orEmpty()
             .mapNotNull(::readMetadata)
             .sortedByDescending { it.createdAt }
     }
 
-    @Synchronized
-    fun find(id: String): IncomingPackageEntry? {
-        if (!SAFE_ID.matches(id)) return null
-        return readMetadata(File(directory, "$id.$METADATA_EXTENSION"))
+    fun find(id: String): IncomingPackageEntry? = synchronized(PROCESS_LOCK) {
+        if (!SAFE_ID.matches(id)) return@synchronized null
+        readMetadata(File(directory, "$id.$METADATA_EXTENSION"))
     }
 
     fun uriFor(entry: IncomingPackageEntry): Uri = FileProvider.getUriForFile(
@@ -58,31 +55,28 @@ class IncomingPackageRepository(private val context: Context) {
         entry.file,
     )
 
-    @Synchronized
-    fun deleteByUri(uri: Uri): Boolean {
-        val entry = list().firstOrNull { uriFor(it) == uri } ?: return false
-        return delete(entry.id)
+    fun deleteByUri(uri: Uri): Boolean = synchronized(PROCESS_LOCK) {
+        val entry = list().firstOrNull { uriFor(it) == uri } ?: return@synchronized false
+        delete(entry.id)
     }
 
-    @Synchronized
-    fun delete(id: String): Boolean {
-        if (!SAFE_ID.matches(id)) return false
+    fun delete(id: String): Boolean = synchronized(PROCESS_LOCK) {
+        if (!SAFE_ID.matches(id)) return@synchronized false
         val metadataFile = File(directory, "$id.$METADATA_EXTENSION")
         val entry = readMetadata(metadataFile)
         val packageDeleted = entry?.file?.delete()
             ?: directory.listFiles { file -> file.name.startsWith("$id.") && file.extension != METADATA_EXTENSION }
                 .orEmpty().all(File::delete)
         val metadataDeleted = !metadataFile.exists() || metadataFile.delete()
-        return packageDeleted && metadataDeleted
+        packageDeleted && metadataDeleted
     }
 
-    @Synchronized
-    fun cleanupExpired(now: Long = System.currentTimeMillis()): Int {
+    fun cleanupExpired(now: Long = System.currentTimeMillis()): Int = synchronized(PROCESS_LOCK) {
         var removed = 0
         list().forEach { entry ->
             if (now - entry.createdAt >= MAX_AGE_MS && delete(entry.id)) removed++
         }
-        return removed
+        removed
     }
 
     inner class PendingUpload internal constructor(
@@ -110,7 +104,7 @@ class IncomingPackageRepository(private val context: Context) {
         }
 
         @Synchronized
-        fun commit(): IncomingPackageEntry {
+        fun commit(): IncomingPackageEntry = synchronized(PROCESS_LOCK) {
             check(!completed) { "Upload is already closed" }
             completed = true
             output.fd.sync()
@@ -128,14 +122,20 @@ class IncomingPackageRepository(private val context: Context) {
                 temporary.delete()
                 throw IOException("Unable to finalize package upload")
             }
-            val entry = IncomingPackageEntry(id, displayName, destination.length(), destination, System.currentTimeMillis())
+            val entry = IncomingPackageEntry(
+                id,
+                displayName,
+                destination.length(),
+                destination,
+                System.currentTimeMillis(),
+            )
             try {
                 writeMetadata(entry)
             } catch (error: Exception) {
                 destination.delete()
                 throw error
             }
-            return entry
+            entry
         }
 
         @Synchronized
@@ -187,7 +187,8 @@ class IncomingPackageRepository(private val context: Context) {
     private fun cleanupOrphans() {
         directory.listFiles().orEmpty().forEach { file ->
             when {
-                file.name.endsWith(".part") && System.currentTimeMillis() - file.lastModified() >= PART_MAX_AGE_MS -> file.delete()
+                file.name.endsWith(".part") &&
+                    System.currentTimeMillis() - file.lastModified() >= PART_MAX_AGE_MS -> file.delete()
                 file.extension.lowercase(Locale.ROOT) in ALLOWED_EXTENSIONS &&
                     !File(directory, "${file.name.substringBeforeLast('.')}.$METADATA_EXTENSION").isFile &&
                     System.currentTimeMillis() - file.lastModified() >= ORPHAN_GRACE_MS -> file.delete()
@@ -202,6 +203,7 @@ class IncomingPackageRepository(private val context: Context) {
         private val PART_MAX_AGE_MS = TimeUnit.HOURS.toMillis(1)
         private val ORPHAN_GRACE_MS = TimeUnit.HOURS.toMillis(1)
         private val SAFE_ID = Regex("[a-fA-F0-9-]{36}")
+        private val PROCESS_LOCK = Any()
         val ALLOWED_EXTENSIONS = setOf("apk", "apkm", "apks", "apkv", "xapk", "zip")
 
         @JvmStatic

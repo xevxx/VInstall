@@ -15,19 +15,19 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
-import org.junit.runner.RunWith
-import java.io.File
 import com.google.android.material.card.MaterialCardView
 import com.vinstall.alwiz.history.InstallHistoryActivity
 import com.vinstall.alwiz.history.InstallHistoryManager
 import com.vinstall.alwiz.model.HistoryStatus
 import com.vinstall.alwiz.model.InstallHistoryEntry
-import com.vinstall.alwiz.settings.SettingsActivity
 import com.vinstall.alwiz.settings.AppSettings
 import com.vinstall.alwiz.settings.DialogStyle
+import com.vinstall.alwiz.settings.SettingsActivity
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class TvRemoteNavigationTest {
@@ -236,7 +236,7 @@ class TvRemoteNavigationTest {
                     assertEquals(listOf(uris[1], uris[0]), adapter.getOrderedUris())
                     assertTrue(moveDown.isFocusable)
                 }
-                Thread.sleep(500)
+                InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                 scenario.onActivity { activity ->
                     val adapter = activity.findViewById<RecyclerView>(R.id.recycler_queue).adapter as QueueFileAdapter
                     assertEquals(listOf(uris[1], uris[0]), adapter.getOrderedUris())
@@ -273,7 +273,9 @@ class TvRemoteNavigationTest {
                 scenario.onActivity { activity ->
                     assertTrue(!activity.findViewById<View>(R.id.btn_install).isEnabled)
                     assertTrue(activity.findViewById<View>(R.id.btn_select).hasFocus())
-                    assertEquals(0, (activity.findViewById<RecyclerView>(R.id.recycler_queue).adapter as QueueFileAdapter).itemCount)
+                    val adapter = activity.findViewById<RecyclerView>(R.id.recycler_queue).adapter
+                        as QueueFileAdapter
+                    assertEquals(0, adapter.itemCount)
                 }
             }
         } finally {

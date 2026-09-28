@@ -50,7 +50,7 @@ class ReceiveActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        val transferServer = TransferServer(this)
+        val transferServer = TransferServer(this, incomingRepository)
         server = transferServer
         transferServer.start()
     }
@@ -95,7 +95,10 @@ class ReceiveActivity : AppCompatActivity() {
                 setOnClickListener { openPackages(listOf(entry)) }
                 setOnFocusChangeListener { view, focused ->
                     (view as MaterialCardView).setStrokeColor(
-                        ContextCompat.getColor(this@ReceiveActivity, if (focused) R.color.primary else R.color.tv_card_stroke_idle),
+                        ContextCompat.getColor(
+                            this@ReceiveActivity,
+                            if (focused) R.color.primary else R.color.tv_card_stroke_idle,
+                        ),
                     )
                 }
                 addView(TextView(this@ReceiveActivity).apply {

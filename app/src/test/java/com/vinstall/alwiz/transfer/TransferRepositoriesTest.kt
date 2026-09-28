@@ -13,9 +13,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -34,7 +34,10 @@ class TransferRepositoriesTest {
 
     @Test
     fun sanitizeFileName_acceptsSupportedFormatsAndNormalizesUnsafeCharacters() {
-        assertEquals("My package _ (arm64).apkm", IncomingPackageRepository.sanitizeFileName("My package ⚡ (arm64).APKM"))
+        assertEquals(
+            "My package _ (arm64).apkm",
+            IncomingPackageRepository.sanitizeFileName("My package ⚡ (arm64).APKM"),
+        )
         assertEquals("archive.zip", IncomingPackageRepository.sanitizeFileName("archive.zip"))
     }
 
@@ -79,6 +82,54 @@ class TransferRepositoriesTest {
 
         assertEquals(1, repository.cleanupExpired(entry.createdAt + TimeUnit.HOURS.toMillis(25)))
         assertTrue(repository.list().isEmpty())
+    }
+
+    @Test
+    fun incomingRepositoriesPublishAndDeleteAtomicallyAcrossInstances() {
+        val repositoryA = IncomingPackageRepository(context)
+        val repositoryB = IncomingPackageRepository(context)
+        val pending = repositoryA.beginUpload("concurrent.apk", expectedSize = 4)
+        pending.write(byteArrayOf(1, 2))
+
+        assertTrue(repositoryB.list().isEmpty())
+
+        val start = CountDownLatch(1)
+        val executor = Executors.newFixedThreadPool(2)
+        try {
+            val committed = executor.submit<IncomingPackageEntry> {
+                start.await()
+                pending.write(byteArrayOf(3, 4))
+                pending.commit()
+            }
+            val observedOnlyCompleteEntries = executor.submit<Boolean> {
+                start.await()
+                repeat(100) {
+                    if (repositoryB.list().any { entry -> entry.size != 4L }) return@submit false
+                }
+                true
+            }
+            start.countDown()
+            val entry = committed.get(5, TimeUnit.SECONDS)
+            assertTrue(observedOnlyCompleteEntries.get(5, TimeUnit.SECONDS))
+            assertEquals(4L, repositoryB.find(entry.id)?.size)
+
+            val deleteStart = CountDownLatch(1)
+            val deleted = executor.submit<Boolean> {
+                deleteStart.await()
+                repositoryA.delete(entry.id)
+            }
+            val cleaned = executor.submit<Int> {
+                deleteStart.await()
+                repositoryB.cleanupExpired(entry.createdAt + TimeUnit.HOURS.toMillis(25))
+            }
+            deleteStart.countDown()
+            deleted.get(5, TimeUnit.SECONDS)
+            cleaned.get(5, TimeUnit.SECONDS)
+            assertTrue(repositoryA.list().isEmpty())
+            assertTrue(repositoryB.find(entry.id) == null)
+        } finally {
+            executor.shutdownNow()
+        }
     }
 
     @Test

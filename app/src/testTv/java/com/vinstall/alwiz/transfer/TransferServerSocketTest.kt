@@ -14,6 +14,8 @@ import java.io.File
 import java.net.Socket
 import java.net.URL
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.LockSupport
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -54,7 +56,10 @@ class TransferServerSocketTest {
         val boundary = "VInstallBoundary"
         val multipart = buildString {
             append("--$boundary\r\nContent-Disposition: form-data; name=\"files\"; filename=\"one.apk\"\r\n\r\nONE")
-            append("\r\n--$boundary\r\nContent-Disposition: form-data; name=\"files\"; filename=\"two.apkm\"\r\n\r\nTWO")
+            append(
+                "\r\n--$boundary\r\nContent-Disposition: form-data; " +
+                    "name=\"files\"; filename=\"two.apkm\"\r\n\r\nTWO",
+            )
             append("\r\n--$boundary--\r\n")
         }.toByteArray(StandardCharsets.UTF_8)
         val uploadResponse = request(
@@ -109,7 +114,8 @@ class TransferServerSocketTest {
         now += PAIRING_SESSION_TIMEOUT_MS + 1
         val expired = request(
             running,
-            "POST /api/uploads HTTP/1.1\r\nHost: tv\r\nCookie: $cookie\r\nContent-Type: multipart/form-data; boundary=x\r\nContent-Length: 0\r\n\r\n",
+            "POST /api/uploads HTTP/1.1\r\nHost: tv\r\nCookie: $cookie\r\n" +
+                "Content-Type: multipart/form-data; boundary=x\r\nContent-Length: 0\r\n\r\n",
         )
         assertTrue(expired.startsWith("HTTP/1.1 401"))
 
@@ -123,7 +129,9 @@ class TransferServerSocketTest {
         )
         val freshCookie = Regex("Set-Cookie: ([^;]+)").find(freshPair)!!.groupValues[1]
         val port = URL(running.url).port
-        Socket("127.0.0.1", port).use { socket ->
+        val interruptedSocket = Socket("127.0.0.1", port)
+        try {
+            val socket = interruptedSocket
             val output = socket.getOutputStream()
             output.write(
                 ("POST /api/uploads HTTP/1.1\r\nHost: tv\r\nCookie: $freshCookie\r\n" +
@@ -132,8 +140,18 @@ class TransferServerSocketTest {
                     .toByteArray(),
             )
             output.flush()
+            awaitCondition("Interrupted upload was not accepted") {
+                running.activeConnectionCount > 0
+            }
+        } finally {
+            interruptedSocket.close()
         }
-        Thread.sleep(500)
+        awaitCondition("Interrupted upload was not cleaned up") {
+            running.activeConnectionCount == 0 &&
+                File(context.filesDir, "incoming").listFiles().orEmpty().none {
+                    it.name.endsWith(".part")
+                }
+        }
         assertTrue(File(context.filesDir, "incoming").listFiles().orEmpty().none { it.name.endsWith(".part") })
         assertTrue(IncomingPackageRepository(context).list().isEmpty())
     }
@@ -145,7 +163,9 @@ class TransferServerSocketTest {
         val held = mutableListOf<Socket>()
         try {
             repeat(12) { held += Socket("127.0.0.1", port) }
-            Thread.sleep(250)
+            awaitCondition("Server did not fill its client pool and queue") {
+                running.activeConnectionCount == held.size
+            }
             Socket("127.0.0.1", port).use { overflow ->
                 overflow.soTimeout = 5_000
                 val response = overflow.getInputStream().readBytes().toString(StandardCharsets.UTF_8)
@@ -166,6 +186,14 @@ class TransferServerSocketTest {
                 flush()
             }
             return socket.getInputStream().readBytes().toString(StandardCharsets.UTF_8)
+        }
+    }
+
+    private fun awaitCondition(message: String, condition: () -> Boolean) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        while (!condition()) {
+            if (System.nanoTime() >= deadline) throw AssertionError(message)
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10))
         }
     }
 }

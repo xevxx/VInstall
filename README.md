@@ -1,6 +1,36 @@
-# VInstall
+# VInstall for Android TV
 
-A minimal Android application for installing APK, XAPK, APKS, APKM, APKV, and ZIP packages, with a built-in app manager, backup, and uninstaller.
+An Android TV-focused fork of [VInstall](https://github.com/vinstall/VInstall), adapted for reliable five-way remote navigation and package management on a television.
+
+> [!NOTE]
+> This is an independent Android TV port, not an official release of the upstream VInstall project. For the original project, its releases, or upstream support, visit [vinstall/VInstall](https://github.com/vinstall/VInstall).
+
+The original phone interface is retained as the `phone` build flavor, while the `tv` flavor provides the television experience and can be installed separately.
+
+## What This Fork Adds
+
+- A Leanback-style home screen designed for D-pad remotes
+- Remote-friendly package selection, settings, installation history, and queue controls
+- A built-in TV file browser for devices without a suitable system document picker
+- Browser-to-TV transfers over the local network using a six-digit pairing code
+- Separate `phone` and `tv` application flavors
+- Additional archive validation, storage checks, and installer hardening
+
+## Screenshots
+
+Captured on an NVIDIA Shield Android TV using the `tv` debug build.
+
+| Dashboard | Package installer |
+|---|---|
+| <img src="docs/screenshots/tv-home.png" alt="VInstall TV dashboard" width="480"> | <img src="docs/screenshots/tv-install.png" alt="VInstall TV package installer" width="480"> |
+
+| Browser transfer | Settings |
+|---|---|
+| <img src="docs/screenshots/tv-receive.png" alt="VInstall TV browser transfer pairing screen" width="480"> | <img src="docs/screenshots/tv-settings.png" alt="VInstall TV settings" width="480"> |
+
+## Testing
+
+See the [physical-device test matrix](docs/device-test-matrix.md) for verified Shield TV behavior and flows that still require device testing.
 
 ## Features
 
@@ -41,7 +71,7 @@ Browse all installed user apps with the ability to:
 
 Export any installed user app as an `.apkv` archive directly from the App Manager or the dedicated Backup screen. Exports are created in private app storage and can then be saved with Android's document picker. Optional password-based encryption is supported when exporting.
 
-### Android TV
+### Android TV Experience
 
 The `tv` flavor is a separately installable, five-way-remote-friendly build with a Leanback dashboard. Its Receive screen starts a lifecycle-bound LAN server with a six-digit pairing code for browser uploads and authenticated APKV downloads. Received packages are always reviewed and explicitly installed on the TV.
 
@@ -144,6 +174,6 @@ This project uses the following open-source libraries:
 | [Shizuku](https://github.com/RikkaApps/Shizuku) | RikkaApps | [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) | |
 | [Bouncy Castle](https://www.bouncycastle.org/) | The Legion of the Bouncy Castle | [MIT-style](https://www.bouncycastle.org/licence.html) | Removed in v0.4.2-hotfix2 |
 
-## Author
+## Upstream Project and Credits
 
-Developed by [AlwizBA](https://github.com/lenzarchive)/[VInstall](https://github.com/vinstall)
+VInstall was created by [AlwizBA](https://github.com/lenzarchive) and is maintained at [vinstall/VInstall](https://github.com/vinstall/VInstall). This fork retains the upstream project and license while adding the Android TV-specific work described above.

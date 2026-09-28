@@ -52,7 +52,13 @@ class ExportRepository(context: Context) {
                 }
                 if (!partial.renameTo(destination)) throw IOException("Unable to finalize export")
             }
-            val entry = ExportEntry(id, displayName, destination.length(), destination, System.currentTimeMillis())
+            val entry = ExportEntry(
+                id,
+                displayName,
+                destination.length(),
+                destination,
+                System.currentTimeMillis(),
+            )
             writeMetadata(entry)
             entry
         } catch (error: Exception) {
@@ -79,7 +85,8 @@ class ExportRepository(context: Context) {
         if (!isSafeId(id)) return@synchronized false
         val metadata = File(directory, "$id.$METADATA_EXTENSION")
         val entry = readMetadataFile(metadata)
-        val deletedFile = entry?.file?.delete() ?: File(directory, "$id.apkv").let { !it.exists() || it.delete() }
+        val deletedFile = entry?.file?.delete()
+            ?: File(directory, "$id.apkv").let { !it.exists() || it.delete() }
         val deletedMetadata = !metadata.exists() || metadata.delete()
         deletedFile && deletedMetadata
     }
@@ -119,13 +126,24 @@ class ExportRepository(context: Context) {
 
     private fun readMetadataFile(metadataFile: File): ExportEntry? = runCatching {
         val metadata = gson.fromJson(metadataFile.readText(), Metadata::class.java)
-        if (!isSafeId(metadata.id) || normalizeDisplayName(metadata.displayName) != metadata.displayName) return null
+        if (
+            !isSafeId(metadata.id) ||
+            normalizeDisplayName(metadata.displayName) != metadata.displayName
+        ) {
+            return null
+        }
         val file = File(directory, "${metadata.id}.apkv")
         if (!file.isFile) {
             metadataFile.delete()
             return null
         }
-        ExportEntry(metadata.id, metadata.displayName, file.length(), file, metadata.createdAt)
+        ExportEntry(
+            metadata.id,
+            metadata.displayName,
+            file.length(),
+            file,
+            metadata.createdAt,
+        )
     }.getOrNull()
 
     private fun cleanupOrphans() {
